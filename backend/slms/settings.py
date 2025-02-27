@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -75,8 +78,12 @@ WSGI_APPLICATION = 'slms.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('MYSQL_DB_NAME'),  # Default value 'slms' if not set
+        'USER': os.getenv('MYSQL_USER'),  # Default value 'root' if not set
+        'PASSWORD': os.getenv('MYSQL_PASSWORD'),  # Default value 'rimon' if not set
+        'HOST': os.getenv('MYSQL_DB_HOST', 'localhost'),  # Default value 'localhost' if not set
+        'PORT': os.getenv('MYSQL_DB_PORT'),  # Default value '3306' if not set
     }
 }
 

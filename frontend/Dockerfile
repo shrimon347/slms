@@ -7,8 +7,8 @@ WORKDIR /frontend
 # Copy package.json and package-lock.json first for efficient caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --production
+# Install dependencies (including dev dependencies like Vite)
+RUN npm install
 
 # Copy application source code
 COPY public ./public

@@ -1,0 +1,68 @@
+services:
+  database:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3307:3306"  
+    volumes:
+      - mysql_data:/var/lib/mysql 
+    networks:
+      - database-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend-container
+    environment:
+      MYSQL_DB_HOST: ${MYSQL_DB_HOST}
+      MYSQL_DB_PORT: ${MYSQL_DB_PORT}
+      MYSQL_DB_NAME: ${MYSQL_DB_NAME}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      SERVER_PORT: ${SERVER_PORT}
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "8000:8000"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - app-network
+      - database-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-container
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api  
+    ports:
+      - "5173:5173"
+    networks:
+      - app-network
+    depends_on:
+      backend:
+        condition: service_started
+
+volumes:
+  mysql_data: 
+
+networks:
+  app-network:
+    driver: bridge
+  database-network:
+    driver: bridge
