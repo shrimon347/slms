@@ -82,7 +82,7 @@ DATABASES = {
         'NAME': os.getenv('MYSQL_DB_NAME'),  # Default value 'slms' if not set
         'USER': os.getenv('MYSQL_USER'),  # Default value 'root' if not set
         'PASSWORD': os.getenv('MYSQL_PASSWORD'),  # Default value 'rimon' if not set
-        'HOST': os.getenv('MYSQL_DB_HOST', 'localhost'),  # Default value 'localhost' if not set
+        'HOST': os.getenv('MYSQL_DB_HOST', '127.0.0.1'),  # Default value 'localhost' if not set
         'PORT': os.getenv('MYSQL_DB_PORT'),  # Default value '3306' if not set
     }
 }
