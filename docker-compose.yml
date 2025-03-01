@@ -7,18 +7,19 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3307:3306"  
     volumes:
-      - mysql_data:/var/lib/mysql 
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql 
     networks:
       - database-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
       interval: 10s
       retries: 5
+      start_period: 40s
     restart: unless-stopped
 
   backend:
@@ -28,7 +29,7 @@ services:
     container_name: backend-container
     environment:
       MYSQL_DB_HOST: ${MYSQL_DB_HOST}
-      MYSQL_DB_PORT: ${MYSQL_DB_PORT}
+      MYSQL_DB_PORT: ${MYSQL_DB_PORT:-3306}
       MYSQL_DB_NAME: ${MYSQL_DB_NAME}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}

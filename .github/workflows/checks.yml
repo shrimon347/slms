@@ -32,19 +32,42 @@ jobs:
           echo "MYSQL_DB_HOST=${{ secrets.DB_HOST }}" >> $GITHUB_ENV
           echo "MYSQL_DB_NAME=${{ secrets.DB_NAME }}" >> $GITHUB_ENV
           echo "MYSQL_USER=${{ secrets.MYSQL_USER }}" >> $GITHUB_ENV
+          echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> $GITHUB_ENV
+          echo "MYSQL_DATABASE=${{ secrets.DB_NAME }}" >> $GITHUB_ENV
           echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> $GITHUB_ENV
+          echo "MYSQL_DB_PORT=${{ secrets.DB_PORT || 3306}}" >> $GITHUB_ENV
           echo "SERVER_PORT=${{ secrets.SERVER_PORT || 8000 }}" >> $GITHUB_ENV  # Default to 8000
 
       - name: Start Database and Backend Services
-        run: docker-compose up -d database backend
+        run: docker compose up -d database backend
 
+      - name: Debug Database Status
+        if: always()
+        run: |
+          echo "Docker container status:"
+          docker ps -a
+          echo "MySQL container logs:"
+          docker logs mysql-container
+      # Step 6: Wait for Database to be Ready
       - name: Wait for Database to be Ready
         run: |
           echo "Waiting for database to be ready..."
-          sleep 15  # Adjust if needed
+          until docker exec mysql-container mysqladmin ping -h localhost -u ${{ secrets.MYSQL_USER }} -p${{ secrets.MYSQL_PASSWORD }} --silent; do
+            echo "Database is not ready yet. Retrying in 5 seconds..."
+            sleep 5
+          done
+          echo "Database is ready!"
 
       - name: Run Backend Tests
         run: docker compose run --rm backend sh -c "python manage.py wait_for_db && python manage.py test"
+      
+      - name: Debug backend Status
+        if: always()
+        run: |
+          echo "Docker container status:"
+          docker ps -a
+          echo "Backend container logs:"
+          docker logs backend-container
 
       - name: Stop and Cleanup
         if: always()
