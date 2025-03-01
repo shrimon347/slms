@@ -36,7 +36,7 @@ jobs:
           echo "SERVER_PORT=${{ secrets.SERVER_PORT || 8000 }}" >> $GITHUB_ENV  # Default to 8000
 
       - name: Start Database and Backend Services
-        run: docker-compose up -d database backend
+        run: docker compose up -d database backend
 
       - name: Wait for Database to be Ready
         run: |
