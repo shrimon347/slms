@@ -15,7 +15,7 @@ services:
     networks:
       - database-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
       interval: 10s
       retries: 5
     restart: unless-stopped
@@ -27,7 +27,7 @@ services:
     container_name: backend-container
     environment:
       MYSQL_DB_HOST: ${MYSQL_DB_HOST}
-      MYSQL_DB_PORT: ${MYSQL_DB_PORT}
+      MYSQL_DB_PORT: ${MYSQL_DB_PORT:-3306}
       MYSQL_DB_NAME: ${MYSQL_DB_NAME}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
