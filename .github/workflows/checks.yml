@@ -38,10 +38,15 @@ jobs:
       - name: Start Database and Backend Services
         run: docker compose up -d database backend
 
+      # Step 6: Wait for Database to be Ready
       - name: Wait for Database to be Ready
         run: |
           echo "Waiting for database to be ready..."
-          sleep 15  # Adjust if needed
+          until docker exec mysql-container mysqladmin ping -h localhost -u ${{ env.MYSQL_USER }} -p${{ env.MYSQL_PASSWORD }} --silent; do
+            echo "Database is not ready yet. Retrying in 5 seconds..."
+            sleep 5
+          done
+          echo "Database is ready!"
 
       - name: Run Backend Tests
         run: docker compose run --rm backend sh -c "python manage.py wait_for_db && python manage.py test"
