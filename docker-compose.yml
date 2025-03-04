@@ -37,6 +37,9 @@ services:
       FRONTEND_URL: http://localhost:5173
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend:/app  # Sync local Django backend with container
+      - /app/__pycache__/  # Prevent caching issues
     depends_on:
       database:
         condition: service_healthy
