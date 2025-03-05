@@ -7,7 +7,11 @@ from useraccount.models import User
 class UserAdmin(BaseUserAdmin):
     # Define the fields to display in the list view
     list_display = ("email", "full_name", "role", "is_staff", "is_active")
-    list_filter = ("is_staff", "is_superuser", "is_active", "role")
+    list_filter = (
+        "role",
+        "is_staff",
+        "is_active",
+    )  # Removed 'is_superuser' for simplicity
     search_fields = ("email", "full_name")
     ordering = ("email",)
 
@@ -54,7 +58,7 @@ class UserAdmin(BaseUserAdmin):
 
     # Ensure the password is hashed when saving a new user
     def save_model(self, request, obj, form, change):
-        if not change:  # If creating a new user
+        if not change:
             obj.set_password(form.cleaned_data["password1"])
         super().save_model(request, obj, form, change)
 

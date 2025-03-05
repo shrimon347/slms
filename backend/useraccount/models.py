@@ -1,5 +1,5 @@
 import uuid
-from .validators import *
+
 from django.conf import settings
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -7,6 +7,8 @@ from django.contrib.auth.models import (
     PermissionsMixin,
 )
 from django.db import models
+
+from .validators import *
 
 
 class RoleChoices(models.TextChoices):
@@ -33,7 +35,8 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
-
+        # Set role to 'ADMIN' for superuser
+        extra_fields.setdefault("role", RoleChoices.ADMIN)
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser must have is_staff=True.")
         if extra_fields.get("is_superuser") is not True:
@@ -52,12 +55,23 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=10,
         choices=RoleChoices.choices,
         default=RoleChoices.STUDENT,
-        validators=[validate_role]
+        validators=[validate_role],
     )
-    date_of_birth = models.DateField(null=True, blank=True, validators=[validate_date_of_birth])
-    contact_number = models.CharField(max_length=20, unique=True, null=True, blank=True, validators=[validate_contact_number])
+    date_of_birth = models.DateField(
+        null=True, blank=True, validators=[validate_date_of_birth]
+    )
+    contact_number = models.CharField(
+        max_length=20,
+        unique=True,
+        null=True,
+        blank=True,
+        validators=[validate_contact_number],
+    )
     profile_picture = models.ImageField(
-        upload_to="uploads/avatars", null=True, blank=True, validators=[validate_profile_picture]
+        upload_to="uploads/avatars",
+        null=True,
+        blank=True,
+        validators=[validate_profile_picture],
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
