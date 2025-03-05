@@ -1,7 +1,11 @@
 import uuid
 
 from django.conf import settings
-from django.contrib.auth.models import AbstractBaseUser,BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 from django.db import models
 
 
@@ -12,16 +16,20 @@ class RoleChoices(models.TextChoices):
 
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, full_name, password=None, **extra_fields):
+    def create_user(
+        self, email, full_name=None, password=None, password2=None, **extra_fields
+    ):
         if not email:
             raise ValueError("The Email field must be set")
         email = self.normalize_email(email)
         user = self.model(email=email, full_name=full_name, **extra_fields)
-        user.set_password(password)
+        # Hash the password before saving the user
+        if password:
+            user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, full_name, password=None, **extra_fields):
+    def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
@@ -31,7 +39,9 @@ class CustomUserManager(BaseUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
 
-        return self.create_user(email, full_name, password, **extra_fields)
+        return self.create_user(
+            email, full_name="Admin", password=password, **extra_fields
+        )
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -65,6 +75,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def profile_image_url(self):
         if self.profile_picture:
-            website_url = getattr(settings, "WEBSITE_URL", "")
-            return f"{website_url}{self.profile_picture.url}"
-        return ""
+            return f"{settings.WEBSITE_URL}{self.profile_picture.url}"
+        else:
+            return ""

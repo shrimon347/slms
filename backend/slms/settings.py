@@ -45,13 +45,34 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt",
+    "corsheaders",
     "core",
     "useraccount",
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:8000",  # Django backend (local)
+    "http://localhost:8000",  # Django backend (alternative local)
+    "http://localhost:3000",  # React (Create React App default)
+    "http://127.0.0.1:3000",  # React (alternative local)
+    "http://localhost:5173",  # React (Vite default)
+    "http://127.0.0.1:5173",  # React (Vite alternative local)
+]
 
+CORS_ALLOW_ALL_ORIGINS = True
+
+# JWT Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
 
 MIDDLEWARE = [
+
+    "corsheaders.middleware.CorsMiddleware",
+
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -103,9 +124,6 @@ DATABASES = {
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
