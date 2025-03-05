@@ -1,5 +1,5 @@
 import uuid
-
+from .validators import *
 from django.conf import settings
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -46,17 +46,18 @@ class CustomUserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    full_name = models.CharField(max_length=255)
-    email = models.EmailField(unique=True)
+    full_name = models.CharField(max_length=255, validators=[validate_full_name])
+    email = models.EmailField(unique=True, validators=[validate_email])
     role = models.CharField(
         max_length=10,
         choices=RoleChoices.choices,
-        default=RoleChoices.STUDENT,  # Default role is 'student'
+        default=RoleChoices.STUDENT,
+        validators=[validate_role]
     )
-    date_of_birth = models.DateField(null=True, blank=True)
-    contact_number = models.CharField(max_length=20, unique=True, null=True, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True, validators=[validate_date_of_birth])
+    contact_number = models.CharField(max_length=20, unique=True, null=True, blank=True, validators=[validate_contact_number])
     profile_picture = models.ImageField(
-        upload_to="uploads/avatars", null=True, blank=True
+        upload_to="uploads/avatars", null=True, blank=True, validators=[validate_profile_picture]
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
