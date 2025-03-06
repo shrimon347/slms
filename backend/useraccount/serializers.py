@@ -73,6 +73,32 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 class UserLoginSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255)
+
     class Meta:
         model = User
         fields = ["email", "password"]
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "full_name",
+            "email",
+            "date_of_birth",
+            "contact_number",
+            "profile_picture",
+            "profile_image_url",
+        ]
+        read_only_fields = ["email", "id"]
+
+    # validate data for update profile data
+    def update(self, instance, validated_data):
+        """
+        Update the user profile with the provided data.
+        This allows partial updates.
+        """
+        id = instance.id
+        updated_user = UserService.update_user(id, **validated_data)
+        return updated_user
