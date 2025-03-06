@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -30,7 +31,7 @@ SECRET_KEY = "django-insecure-01+rhdq14v=(=9u1z#ohohad6*^8nu2ktgoltyt&i3*lkq_b7w
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-WEBSITE_URL = 'http://localhost:8000'
+WEBSITE_URL = "http://localhost:8000"
 
 ALLOWED_HOSTS = []
 
@@ -45,13 +46,45 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt",
+    "corsheaders",
     "core",
     "useraccount",
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:8000",  # Django backend (local)
+    "http://localhost:8000",  # Django backend (alternative local)
+    "http://localhost:3000",  # React (Create React App default)
+    "http://127.0.0.1:3000",  # React (alternative local)
+    "http://localhost:5173",  # React (Vite default)
+    "http://127.0.0.1:5173",  # React (Vite alternative local)
+]
 
+CORS_ALLOW_ALL_ORIGINS = True
+
+# JWT Configuration
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",  # Default to requiring authentication
+    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKEN": False,
+    "BLACKLIST_AFTER_ROTATION": False,
+    "UPDATE_LAST_LOGIN": True,
+    "SIGNING_KEY": "acomplexkey",
+    "ALOGRIGTHM": "HS512",
+}
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -104,9 +137,6 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
@@ -134,8 +164,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "static/"
-MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -144,4 +174,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-AUTH_USER_MODEL = 'useraccount.User'
+AUTH_USER_MODEL = "useraccount.User"
