@@ -11,6 +11,8 @@ class UserService:
     @staticmethod
     def create_user(email, full_name, password, password2, **extra_fields):
         """Create a new user with validated fields."""
+        if not password:
+            raise ValueError("Password is required to create a user.")
         if password != password2:
             raise ValidationError("Passwords do not match.")
 
