@@ -49,9 +49,9 @@ class UserService:
         return user
 
     @staticmethod
-    def update_user(user_id, **updated_fields):
+    def update_user(id, **updated_fields):
         """Update a user's fields."""
-        user = UserRepository.get_user_by_id(user_id)
+        user = UserRepository.get_user_by_id(id)
         if not user:
             raise ValidationError("User not found.")
 
@@ -60,9 +60,9 @@ class UserService:
         return user
 
     @staticmethod
-    def update_user_password(user_id, new_password, old_password):
+    def update_user_password(id, new_password, old_password):
         """Update the user's password."""
-        user = UserRepository.get_user_by_id(user_id)
+        user = UserRepository.get_user_by_id(id)
         if not user:
             raise ValidationError("User not found.")
 
@@ -74,9 +74,9 @@ class UserService:
         return user
 
     @staticmethod
-    def set_user_role(user_id, role):
+    def set_user_role(id, role):
         """Set the role of a user."""
-        user = UserRepository.get_user_by_id(user_id)
+        user = UserRepository.get_user_by_id(id)
         if not user:
             raise ValidationError("User not found.")
 
@@ -89,9 +89,9 @@ class UserService:
         return user
 
     @staticmethod
-    def delete_user(user_id):
+    def delete_user(id):
         """Delete a user."""
-        user = UserRepository.get_user_by_id(user_id)
+        user = UserRepository.get_user_by_id(id)
         if not user:
             raise ValidationError("User not found.")
 
@@ -99,9 +99,9 @@ class UserService:
         return user
 
     @staticmethod
-    def activate_user(user_id):
+    def activate_user(id):
         """Activate a user."""
-        user = UserRepository.get_user_by_id(user_id)
+        user = UserRepository.get_user_by_id(id)
         if not user:
             raise ValidationError("User not found.")
 
@@ -110,9 +110,9 @@ class UserService:
         return user
 
     @staticmethod
-    def deactivate_user(user_id):
+    def deactivate_user(id):
         """Deactivate a user."""
-        user = UserRepository.get_user_by_id(user_id)
+        user = UserRepository.get_user_by_id(id)
         if not user:
             raise ValidationError("User not found.")
 

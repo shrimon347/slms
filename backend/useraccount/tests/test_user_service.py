@@ -53,7 +53,7 @@ class UserServiceTestCase(TestCase):
     def test_update_user(self, mock_get_user, mock_update_user):
         # Create a mock user
         user = MagicMock()
-        user.user_id = uuid.uuid4()  # Ensure the user_id is a valid UUID
+        user.id = uuid.uuid4()  # Ensure the id is a valid UUID
         user.email = "test@example.com"
         user.full_name = "John Doe"  # Initial full_name
 
@@ -65,11 +65,11 @@ class UserServiceTestCase(TestCase):
         user.full_name = "Updated Name"  # Update full_name in the mock
 
         # Call the service method
-        updated_user = UserService.update_user(user_id=user.user_id, full_name="Updated Name")
+        updated_user = UserService.update_user(id=user.id, full_name="Updated Name")
 
         # Assertions
         self.assertEqual(updated_user.full_name, "Updated Name")  # Assert the updated name
-        mock_get_user.assert_called_once_with(user.user_id)  # Ensure the correct user is fetched
+        mock_get_user.assert_called_once_with(user.id)  # Ensure the correct user is fetched
         mock_update_user.assert_called_once_with(user, full_name="Updated Name")  # Ensure the update was made
 
 
@@ -79,13 +79,13 @@ class UserServiceTestCase(TestCase):
         # Mock the retrieval of user and the password change
         user = MagicMock()
         user.check_password.return_value = True
-        user.user_id = uuid.uuid4()  # Ensure the user_id is a valid UUID
+        user.id = uuid.uuid4()  # Ensure the id is a valid UUID
         mock_get_user.return_value = user
         mock_update_user.return_value = user
 
         # Call the service method
         updated_user = UserService.update_user_password(
-            user_id=user.user_id, new_password="newpassword123", old_password="password"
+            id=user.id, new_password="newpassword123", old_password="password"
         )
 
         # Assertions
@@ -96,12 +96,12 @@ class UserServiceTestCase(TestCase):
     def test_set_user_role(self, mock_get_user):
         user = MagicMock()
         user.role = RoleChoices.STUDENT
-        user.user_id = uuid.uuid4()  # Ensure the user_id is a valid UUID
+        user.id = uuid.uuid4()  # Ensure the id is a valid UUID
         mock_get_user.return_value = user
 
         # Call the service method to set the role
         updated_user = UserService.set_user_role(
-            user_id=user.user_id, role=RoleChoices.ADMIN
+            id=user.id, role=RoleChoices.ADMIN
         )
 
         # Assertions
@@ -114,17 +114,17 @@ class UserServiceTestCase(TestCase):
 
         # Call the service method with an invalid role
         with self.assertRaises(ValidationError):
-            UserService.set_user_role(user_id=user.user_id, role="invalid_role")
+            UserService.set_user_role(id=user.id, role="invalid_role")
 
     @patch("useraccount.services.user_service.UserRepository.get_user_by_id")
     @patch("useraccount.services.user_service.UserRepository.delete_user")
     def test_delete_user(self, mock_delete_user, mock_get_user):
         user = MagicMock()
-        user.user_id = uuid.uuid4()  # Ensure the user_id is a valid UUID
+        user.id = uuid.uuid4()  # Ensure the id is a valid UUID
         mock_get_user.return_value = user
 
         # Call the service method
-        deleted_user = UserService.delete_user(user_id=user.user_id)
+        deleted_user = UserService.delete_user(id=user.id)
 
         # Assertions
         mock_delete_user.assert_called_with(user)
@@ -134,11 +134,11 @@ class UserServiceTestCase(TestCase):
     def test_deactivate_user(self, mock_get_user):
         user = MagicMock()
         user.is_active = True
-        user.user_id = uuid.uuid4()  # Ensure the user_id is a valid UUID
+        user.id = uuid.uuid4()  # Ensure the id is a valid UUID
         mock_get_user.return_value = user
 
         # Call the service method to deactivate the user
-        deactivated_user = UserService.deactivate_user(user_id=user.user_id)
+        deactivated_user = UserService.deactivate_user(id=user.id)
 
         # Assertions
         self.assertFalse(deactivated_user.is_active)
@@ -147,11 +147,11 @@ class UserServiceTestCase(TestCase):
     def test_activate_user(self, mock_get_user):
         user = MagicMock()
         user.is_active = False
-        user.user_id = uuid.uuid4()  # Ensure the user_id is a valid UUID
+        user.id = uuid.uuid4()  # Ensure the id is a valid UUID
         mock_get_user.return_value = user
 
         # Call the service method to activate the user
-        activated_user = UserService.activate_user(user_id=user.user_id)
+        activated_user = UserService.activate_user(id=user.id)
 
         # Assertions
         self.assertTrue(activated_user.is_active)

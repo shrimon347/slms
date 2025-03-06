@@ -7,10 +7,10 @@ class UserRepository:
     """
 
     @staticmethod
-    def get_user_by_id(user_id):
+    def get_user_by_id(id):
         """Retrieve a user by their UUID."""
         try:
-            return User.objects.get(user_id=user_id)
+            return User.objects.get(id=id)
         except ObjectDoesNotExist:
             return None
 

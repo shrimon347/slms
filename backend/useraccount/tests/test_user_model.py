@@ -19,9 +19,9 @@ class UserModelTest(TestCase):
         self.assertEqual(
             user.role, RoleChoices.STUDENT
         )  # Default role using RoleChoices
-        self.assertIsNotNone(user.user_id)  # UUID field
+        self.assertIsNotNone(user.id)  # UUID field
         self.assertIsNone(user.date_of_birth)
-        self.assertIsNone(user.contact_number)
+        self.assertIsNotNone(user.contact_number)
         self.assertIsNone(user.profile_picture.name)
         self.assertTrue(user.is_active)
         self.assertFalse(user.is_staff)

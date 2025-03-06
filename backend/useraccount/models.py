@@ -48,7 +48,7 @@ class CustomUserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     full_name = models.CharField(max_length=255, validators=[validate_full_name])
     email = models.EmailField(unique=True, validators=[validate_email])
     role = models.CharField(
@@ -63,8 +63,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     contact_number = models.CharField(
         max_length=20,
         unique=True,
-        null=True,
-        blank=True,
         validators=[validate_contact_number],
     )
     profile_picture = models.ImageField(
