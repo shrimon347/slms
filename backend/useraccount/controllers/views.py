@@ -8,6 +8,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from useraccount.models import User
 from useraccount.renderers import UserRenderer
 from useraccount.serializers import (
+    UserChangePasswordSerializer,
     UserLoginSerializer,
     UserProfileSerializer,
     UserRegistrationSerializer,
@@ -103,6 +104,15 @@ class UserProfileView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+
+class UserChangePasswordView(APIView):
+    renderer_classes = [UserRenderer]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = UserChangePasswordSerializer(data=request.data, context={'user': request.user})
+        serializer.is_valid(raise_exception=True)
+        return Response({"message": 'Password Changed Successfully'}, status=status.HTTP_200_OK)
 
 class UserListView(APIView):
     permission_classes = [AllowAny]
