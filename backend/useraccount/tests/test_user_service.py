@@ -48,6 +48,44 @@ class UserServiceTestCase(TestCase):
         self.assertTrue(superuser.is_staff)
         self.assertTrue(superuser.is_superuser)
 
+    @patch("useraccount.services.user_service.UserRepository.get_user_by_email")
+    def test_get_user_by_email(self, mock_get_user_by_email):
+        mock_user = MagicMock()
+        mock_user.email = "test@example.com"
+        mock_get_user_by_email.return_value = mock_user
+
+        user = UserService.get_user_by_email("test@example.com")
+        self.assertIsNotNone(user)
+        self.assertEqual(user.email, "test@example.com")
+
+    @patch("useraccount.services.user_service.UserRepository.get_user_by_email")
+    def test_get_non_existent_user_by_email(self, mock_get_user_by_email):
+        mock_get_user_by_email.return_value = None
+        with self.assertRaises(ValidationError):  # Expecting a ValidationError
+            UserService.get_user_by_email("nonexistent@example.com")
+
+    @patch("useraccount.services.user_service.UserRepository.get_user_by_id")
+    def test_get_user_by_id(self, mock_get_user_by_id):
+        """Test retrieving a user by ID."""
+        mock_user = MagicMock()
+        mock_user.id = uuid.uuid4()  # Assign a unique UUID for the test
+        mock_get_user_by_id.return_value = mock_user
+
+        user = UserService.get_user_by_id(mock_user.id)
+
+        # Assertions
+        self.assertIsNotNone(user)  # Ensure a user is returned
+        self.assertEqual(user.id, mock_user.id)  # Ensure IDs match
+
+    @patch("useraccount.services.user_service.UserRepository.get_user_by_id")
+    def test_get_non_existent_user_by_id(self, mock_get_user_by_id):
+        """Test retrieving a non-existent user by ID raises ValidationError."""
+        mock_get_user_by_id.return_value = None  # Simulate user not found
+        non_existent_id = uuid.uuid4()  # Generate a random user ID
+
+        with self.assertRaises(ValidationError):  # Expect a ValidationError
+            UserService.get_user_by_id(non_existent_id)
+
     @patch("useraccount.services.user_service.UserRepository.update_user")
     @patch("useraccount.services.user_service.UserRepository.get_user_by_id")
     def test_update_user(self, mock_get_user, mock_update_user):
@@ -68,10 +106,15 @@ class UserServiceTestCase(TestCase):
         updated_user = UserService.update_user(id=user.id, full_name="Updated Name")
 
         # Assertions
-        self.assertEqual(updated_user.full_name, "Updated Name")  # Assert the updated name
-        mock_get_user.assert_called_once_with(user.id)  # Ensure the correct user is fetched
-        mock_update_user.assert_called_once_with(user, full_name="Updated Name")  # Ensure the update was made
-
+        self.assertEqual(
+            updated_user.full_name, "Updated Name"
+        )  # Assert the updated name
+        mock_get_user.assert_called_once_with(
+            user.id
+        )  # Ensure the correct user is fetched
+        mock_update_user.assert_called_once_with(
+            user, full_name="Updated Name"
+        )  # Ensure the update was made
 
     @patch("useraccount.services.user_service.UserRepository.get_user_by_id")
     @patch("useraccount.services.user_service.UserRepository.update_user")
@@ -100,9 +143,7 @@ class UserServiceTestCase(TestCase):
         mock_get_user.return_value = user
 
         # Call the service method to set the role
-        updated_user = UserService.set_user_role(
-            id=user.id, role=RoleChoices.ADMIN
-        )
+        updated_user = UserService.set_user_role(id=user.id, role=RoleChoices.ADMIN)
 
         # Assertions
         self.assertEqual(updated_user.role, RoleChoices.ADMIN)
