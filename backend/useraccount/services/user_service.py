@@ -91,6 +91,22 @@ class UserService:
         return user
 
     @staticmethod
+    def get_user_by_email(email):
+        """Retrieve a user by their email using the repository."""
+        user = UserRepository.get_user_by_email(email)
+        if not user:
+            raise ValidationError("User with this email does not exist.")
+        return user
+
+    @staticmethod
+    def get_user_by_id(id):
+        """Retrieve a user by their email using the repository."""
+        user = UserRepository.get_user_by_id(id)
+        if not user:
+            raise ValidationError("User with this id does not exist.")
+        return user
+
+    @staticmethod
     def delete_user(id):
         """Delete a user."""
         user = UserRepository.get_user_by_id(id)
