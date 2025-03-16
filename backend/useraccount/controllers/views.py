@@ -6,11 +6,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from useraccount.models import User
+from useraccount.permissions import IsAdminOrStaff
 from useraccount.renderers import UserRenderer
 from useraccount.serializers import (
     SendPasswordResetEmailSerializer,
     UserChangePasswordSerializer,
     UserLoginSerializer,
+    UserOtpVerifySerializer,
     UserPasswordResetSerializer,
     UserProfileSerializer,
     UserRegistrationSerializer,
@@ -37,11 +39,24 @@ class UserRegistrationView(APIView):
         serializer = UserRegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        token = get_token_for_user(user)
         return Response(
-            {"token": token, "sucess": "User Registration Successful"},
+            {
+                "success": "User registered successfully. Please verify your email with the OTP sent."
+            },
             status=status.HTTP_201_CREATED,
         )
+
+
+class UserVerifyOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = UserOtpVerifySerializer(data=request.data)
+        if serializer.is_valid():
+            return Response(
+                {"message": "Email verified successfully."}, status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserLoginView(APIView):
@@ -53,6 +68,20 @@ class UserLoginView(APIView):
         serializer.is_valid(raise_exception=True)
         email = serializer.data.get("email")
         password = serializer.data.get("password")
+        try:
+            user = UserService.get_user_by_email(email=email)
+
+        except ValidationError:
+            return Response(
+                {"errors": "User with this email does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not user.is_verified:
+            return Response(
+                {"error": "Please verify your email first."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         user = authenticate(email=email, password=password)
         if user is not None:
             token = get_token_for_user(user)
@@ -129,7 +158,7 @@ class SendPasswordResetEmailView(APIView):
         serializer = SendPasswordResetEmailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(
-            {"message": "Password Reset link send. Pleace check your email."},
+            {"message": "Password Reset link sent. Please check your email."},
             status=status.HTTP_200_OK,
         )
 
@@ -149,7 +178,7 @@ class UserPasswordResetView(APIView):
 
 
 class UserListView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsAdminOrStaff]
 
     def get(self, request):
         users = User.objects.all()

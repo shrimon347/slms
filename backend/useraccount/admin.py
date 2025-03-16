@@ -6,7 +6,14 @@ from useraccount.models import User
 
 class UserAdmin(BaseUserAdmin):
     # Define the fields to display in the list view
-    list_display = ("email", "full_name", "role", "is_staff", "is_active")
+    list_display = (
+        "email",
+        "full_name",
+        "role",
+        "is_staff",
+        "is_active",
+        "is_verified",
+    )
     list_filter = (
         "role",
         "is_staff",
@@ -27,6 +34,8 @@ class UserAdmin(BaseUserAdmin):
                     "contact_number",
                     "profile_picture",
                     "role",
+                    "is_verified",
+                    "otp",
                 )
             },
         ),

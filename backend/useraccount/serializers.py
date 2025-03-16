@@ -1,10 +1,13 @@
+import random
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.exceptions import ValidationError
 from django.utils.encoding import DjangoUnicodeDecodeError, force_bytes, smart_str
 from rest_framework import serializers
-from useraccount.utils import Util
 from useraccount.services.user_service import UserService
+from useraccount.utils import Util
+from useraccount.validators import validate_password_strength
 
 from .models import User
 
@@ -57,6 +60,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         if not password:
             raise serializers.ValidationError({"password": "Password is required."})
 
+        # Apply custom password validation
+        try:
+            validate_password_strength(password)
+        except ValidationError as e:
+            raise serializers.ValidationError({"password": str(e)})
+
         # Validate contact number
         if not contact_number:
             raise serializers.ValidationError(
@@ -72,8 +81,40 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        """Create user, generate OTP, and send verification email."""
+        otp = str(random.randint(100000, 999999))  # genrate otp
+        validated_data["otp"] = otp
+        validated_data["is_verified"] = False  # ensure new users are unverified
+
         """Use the service layer to create a user."""
-        return UserService.create_user(**validated_data)
+        user = UserService.create_user(**validated_data)
+        body = f"Your OTP for email verification is {otp}"
+        data = {
+            "subject": "Verify Your Email",
+            "body": body,
+            "to_email": user.email,
+        }
+        Util.send_email(data)
+        return user
+
+
+class UserOtpVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=255)
+    otp = serializers.CharField(max_length=6)
+
+    def validate(self, data):
+        try:
+            user = UserService.get_user_by_email(email=data["email"])
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found.")
+        if user.otp != data["otp"]:
+            raise serializers.ValidationError("Invalid OTP.")
+
+        # Mark user as verified
+        user.is_verified = True
+        user.otp = None  # Clear OTP after verification
+        user.save()
+        return data
 
 
 class UserLoginSerializer(serializers.ModelSerializer):

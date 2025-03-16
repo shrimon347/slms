@@ -70,6 +70,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         validators=[validate_profile_picture],
     )
+    otp = models.CharField(
+        max_length=6, blank=True, null=True
+    )  # OTP for email verification
+    is_verified = models.BooleanField(default=False)  # Email verification flag
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
