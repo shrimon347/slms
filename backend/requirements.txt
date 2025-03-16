@@ -8,4 +8,4 @@ tzdata==2024.2; python_version >= '2'
 python-dotenv==0.21.1
 pillow==10.3.0; python_version >= '3.8'  # For image handling
 django-cors-headers== 4.7.0; python_version >= '3.8' 
-djangorestframework-simplejwt==5.2.2; python_version >= '3.8'  
+djangorestframework-simplejwt==5.2.2; python_version >= '3.8'
