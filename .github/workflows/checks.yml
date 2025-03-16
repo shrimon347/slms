@@ -2,12 +2,12 @@ name: Run Tests - Backend
 
 on:
   push:
-    branches: ["*"]  # Runs on all branches
+    branches: ["*"] # Runs on all branches
     paths:
       - "backend/**"
       - "database/init.sql"
   pull_request:
-    branches: ["*"]  # Runs on all branches
+    branches: ["*"] # Runs on all branches
     paths:
       - "backend/**"
       - "database/init.sql"
@@ -37,6 +37,9 @@ jobs:
           echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> $GITHUB_ENV
           echo "MYSQL_DB_PORT=${{ secrets.DB_PORT || 3306}}" >> $GITHUB_ENV
           echo "SERVER_PORT=${{ secrets.SERVER_PORT || 8000 }}" >> $GITHUB_ENV  # Default to 8000
+          echo "EMAIL_HOST_USER=${{ secrets.EMAIL_USER }}" >> $GITHUB_ENV
+          echo "EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_PASS }}" >> $GITHUB_ENV
+          echo "EMAIL_FROM=${{ secrets.EMAIL_FROM }}" >> $GITHUB_ENV
 
       - name: Start Database and Backend Services
         run: docker compose up -d database backend
@@ -60,7 +63,7 @@ jobs:
 
       - name: Run Backend Tests
         run: docker compose run --rm backend sh -c "python manage.py wait_for_db && python manage.py test"
-      
+
       - name: Debug backend Status
         if: always()
         run: |
