@@ -70,9 +70,11 @@ class UserLoginView(APIView):
         password = serializer.data.get("password")
         try:
             user = UserService.get_user_by_email(email=email)
-        except User.DoesNotExist:
+
+        except ValidationError:
             return Response(
-                {"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST
+                {"errors": "User with this email does not exist."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not user.is_verified:
@@ -156,7 +158,7 @@ class SendPasswordResetEmailView(APIView):
         serializer = SendPasswordResetEmailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(
-            {"message": "Password Reset link send. Pleace check your email."},
+            {"message": "Password Reset link sent. Please check your email."},
             status=status.HTTP_200_OK,
         )
 
