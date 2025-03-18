@@ -1,25 +1,29 @@
-from course.repositories import CourseCategoryRepository
+from course.repositories.course_category_repository import CourseCategoryRepository
+
 
 class CourseCategoryService:
-    def __init__(self):
-        self.repo = CourseCategoryRepository()
 
-    def get_all_categories(self):
+    @staticmethod
+    def get_all_categories():
         """Get all categories."""
-        return self.repo.get_all()
+        return CourseCategoryRepository.get_all_categories()
 
-    def get_category_by_id(self, category_id: int):
+    @staticmethod
+    def get_category_by_name(category_name: str):
         """Get a category by its ID."""
-        return self.repo.get_by_id(category_id)
+        return CourseCategoryRepository.get_categories_by_name(category_name)
 
-    def create_category(self, **data):
+    @staticmethod
+    def create_category(**data):
         """Create a new category."""
-        return self.repo.create(**data)
+        return CourseCategoryRepository.create(**data)
 
-    def update_category(self, category_id: int, **data):
+    @staticmethod
+    def update_category(category_id: int, **data):
         """Update an existing category."""
-        return self.repo.update(category_id, **data)
+        return CourseCategoryRepository.update(category_id, **data)
 
-    def delete_category(self, category_id: int):
+    @staticmethod
+    def delete_category(category_id: int):
         """Delete a category."""
-        return self.repo.delete(category_id)
+        return CourseCategoryRepository.delete(category_id)

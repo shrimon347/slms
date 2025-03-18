@@ -1,25 +1,37 @@
-from course.models import Course
+from course.models import Course, CourseCategory
 
 
 class CourseRepository:
-    def get_by_id(self, course_id: int):
-        """Retrieve a single course by ID."""
-        try:
-            return Course.objects.get(id=course_id)
-        except Course.DoesNotExist:
-            return None
-
-    def get_all(self, category_id: int = None):
-        """Retrieve all courses, optionally filtered by category."""
-        if category_id:
-            return Course.objects.filter(category_id=category_id)
+    @staticmethod
+    def get_all_courses():
+        """Retrieve a all course by ID."""
         return Course.objects.all()
+        
 
-    def create(self, **data):
+    @staticmethod
+    def get_courses_by_category_id(category_id):
+        """Retrieve courses by category ID."""
+        return Course.objects.filter(category__id=category_id)
+
+    @staticmethod
+    def get_course_by_slug(slug):
+        """Retrieve a course by its slug."""
+        return Course.objects.filter(slug=slug).first()
+
+    @staticmethod
+    def get_courses_by_category_name(category_name):
+        category = CourseCategory.objects.filter(name__iexact=category_name).first()
+        if category:
+            return Course.objects.filter(category=category)
+        return Course.objects.none()
+
+    @staticmethod
+    def create(**data):
         """Create a new course."""
         return Course.objects.create(**data)
 
-    def update(self, course_id: int, **data):
+    @staticmethod
+    def update(course_id: int, **data):
         """Update an existing course."""
         try:
             course = Course.objects.get(id=course_id)
@@ -30,7 +42,8 @@ class CourseRepository:
         except Course.DoesNotExist:
             return None
 
-    def delete(self, course_id: int):
+    @staticmethod
+    def delete(course_id: int):
         """Delete a course."""
         try:
             course = Course.objects.get(id=course_id)

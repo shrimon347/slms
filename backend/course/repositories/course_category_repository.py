@@ -2,22 +2,34 @@ from course.models import CourseCategory
 
 
 class CourseCategoryRepository:
-    def get_by_id(self, category_id: int):
+    @staticmethod
+    def get_categories_by_id(category_id: int):
         """Retrieve a single category by ID."""
         try:
             return CourseCategory.objects.get(id=category_id)
         except CourseCategory.DoesNotExist:
             return None
 
-    def get_all(self):
+    @staticmethod
+    def get_categories_by_name(category_name: str):
+        """Retrieve a single category by ID."""
+        try:
+            return CourseCategory.objects.get(name=category_name)
+        except CourseCategory.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_all_categories():
         """Retrieve all categories."""
         return CourseCategory.objects.all()
 
-    def create(self, **data):
+    @staticmethod
+    def create(**data):
         """Create a new course category."""
         return CourseCategory.objects.create(**data)
 
-    def update(self, category_id: int, **data):
+    @staticmethod
+    def update(category_id: int, **data):
         """Update an existing category."""
         try:
             category = CourseCategory.objects.get(id=category_id)
@@ -28,7 +40,8 @@ class CourseCategoryRepository:
         except CourseCategory.DoesNotExist:
             return None
 
-    def delete(self, category_id: int):
+    @staticmethod
+    def delete(category_id: int):
         """Delete a course category."""
         try:
             category = CourseCategory.objects.get(id=category_id)

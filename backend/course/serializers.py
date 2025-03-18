@@ -1,13 +1,13 @@
 from django.utils.text import slugify
 from rest_framework import serializers
-from services import (
+
+from .models import Course, CourseCategory, Lesson, Module
+from .services import (
     course_category_service,
     course_service,
     lesson_service,
     module_service,
 )
-
-from .models import Course, CourseCategory, Lesson, Module
 
 
 class CourseCategorySerializer(serializers.ModelSerializer):
@@ -56,18 +56,52 @@ class ModuleSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         return module_service().update_module(instance.id, **validated_data)
 
+class CourseDetailSerializer(serializers.ModelSerializer):
+    """Serializer for Course with related data"""
 
-class CourseSerializer(serializers.ModelSerializer):
-    category_id = serializers.PrimaryKeyRelatedField(queryset=CourseCategory.objects.all(), source='category', write_only=True)
-    category_name = serializers.CharField(write_only=True, required=False)  # For custom category name
+    category = serializers.CharField(source="category.name")  # Get category name instead of ID
+    modules = ModuleSerializer(many=True, read_only=True)  # Nested modules data
+    course_image_url = serializers.SerializerMethodField()
+    time_remaining = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Course
+        fields = "__all__"  # Returns all course fields + related modules
+
+    def get_course_image_url(self, obj):
+        return obj.course_image_url()
+
+    def get_time_remaining(self, obj):
+        return obj.time_remaining()
+
+class CourseCreateUpdateSerializer(serializers.ModelSerializer):
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=CourseCategory.objects.all(), source="category", write_only=True
+    )
+    category_name = serializers.CharField(
+        write_only=True, required=False
+    )  # For custom category name
 
     modules = serializers.SerializerMethodField()  # Lazy loading related modules
 
     class Meta:
         model = Course
         fields = [
-            "id", "category", "category_id", "category_name", "title", "description", "price",
-            "duration", "start_date", "end_date", "slug", "created_at", "updated_at", "modules",
+            "id",
+            "category",
+            "category_id",
+            "category_name",
+            "title",
+            "description",
+            "price",
+            "duration",
+            "demo_url",
+            "start_date",
+            "end_date",
+            "slug",
+            "created_at",
+            "updated_at",
+            "modules",
         ]
         read_only_fields = ["slug", "created_at", "updated_at"]
 
@@ -82,22 +116,48 @@ class CourseSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Create a new course and handle category creation if necessary"""
-        category_name = validated_data.get('category_name', None)
+        category_name = validated_data.get("category_name", None)
         if category_name:
             # Check if category exists case-insensitively, if not create it
-            category, created = CourseCategory.objects.get_or_create(name__iexact=category_name)
-            validated_data['category'] = category
+            category, created = CourseCategory.objects.get_or_create(
+                name__iexact=category_name
+            )
+            validated_data["category"] = category
 
         validated_data["slug"] = slugify(validated_data["title"])
-        return course_service().create_course(category_id=validated_data.pop('category_id', None), **validated_data)
+        return course_service().create_course(
+            category_id=validated_data.pop("category_id", None), **validated_data
+        )
 
     def update(self, instance, validated_data):
         """Update an existing course, and handle category update if necessary"""
-        category_name = validated_data.get('category_name', None)
+        category_name = validated_data.get("category_name", None)
         if category_name:
             # Check if category exists case-insensitively, if not create it
-            category, created = CourseCategory.objects.get_or_create(name__iexact=category_name)
-            validated_data['category'] = category
+            category, created = CourseCategory.objects.get_or_create(
+                name__iexact=category_name
+            )
+            validated_data["category"] = category
 
         validated_data["slug"] = slugify(validated_data.get("title", instance.title))
-        return course_service().update_course(instance.id, category_id=validated_data.pop('category_id', None), **validated_data)
+        return course_service().update_course(
+            instance.id,
+            category_id=validated_data.pop("category_id", None),
+            **validated_data
+        )
+
+
+class CourseListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = fields = [
+            "id",
+            "title",
+            "remaining_seat",
+            "time_remaining",
+            "start_date",
+            "end_date",
+            "batch",
+            "slug",
+            "course_image_url",
+        ]

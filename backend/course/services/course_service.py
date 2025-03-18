@@ -1,26 +1,38 @@
-from course.repositories import course_repository
+from course.repositories.course_repository import CourseRepository
 
 
 class CourseService:
-    def __init__(self):
-        self.repo = course_repository()
-
-    def get_all_courses(self, category_id: int = None):
+    @staticmethod
+    def get_all_courses():
         """Get all courses, optionally filtered by category."""
-        return self.repo.get_all(category_id)
+        return CourseRepository.get_all_courses()
 
-    def get_course_by_id(self, course_id: int):
+    @staticmethod
+    def get_all_courses_by_category_name(category_name: str):
+        """Get all courses, optionally filtered by category."""
+        return CourseRepository.get_courses_by_category_name(category_name)
+
+    @staticmethod
+    def get_course_by_id(course_id: int):
         """Get a course by its ID."""
-        return self.repo.get_by_id(course_id)
+        return CourseRepository.get_courses_by_id(course_id)
 
-    def create_course(self, **data):
+    @staticmethod
+    def get_course_by_slug(slug):
+        """Get a course by its ID."""
+        return CourseRepository.get_courses_by_slug(slug)
+
+    @staticmethod
+    def create_course(**data):
         """Create a new course."""
-        return self.repo.create(**data)
+        return CourseRepository.create(**data)
 
-    def update_course(self, course_id: int, **data):
+    @staticmethod
+    def update_course(course_id: int, **data):
         """Update an existing course."""
-        return self.repo.update(course_id, **data)
+        return CourseRepository.update(course_id, **data)
 
-    def delete_course(self, course_id: int):
+    @staticmethod
+    def delete_course(course_id: int):
         """Delete a course."""
-        return self.repo.delete(course_id)
+        return CourseRepository.delete(course_id)
