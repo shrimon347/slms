@@ -55,24 +55,46 @@ class ModuleSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         return module_service().update_module(instance.id, **validated_data)
+    
+class ModuleExcludedLessonsSerializer(serializers.ModelSerializer):
+    """Serializer for Modules without Lessons"""
+
+    class Meta:
+        model = Module
+        fields = [
+            "title",
+            "description",
+            "order"
+        ]
 
 class CourseDetailSerializer(serializers.ModelSerializer):
     """Serializer for Course with related data"""
 
     category = serializers.CharField(source="category.name")  # Get category name instead of ID
-    modules = ModuleSerializer(many=True, read_only=True)  # Nested modules data
-    course_image_url = serializers.SerializerMethodField()
-    time_remaining = serializers.SerializerMethodField()
+    modules = ModuleExcludedLessonsSerializer(many=True, read_only=True)
 
     class Meta:
         model = Course
-        fields = "__all__"  # Returns all course fields + related modules
+        fields = [
+            "id",
+            "category",
+            "title",
+            "description",
+            "course_image_url",
+            "price",
+            "duration",
+            "batch",
+            "remaining_seat",
+            "start_date",
+            "end_date",
+            "slug",
+            "demo_url",
+            "created_at",
+            "updated_at",
+            "time_remaining",
+            "modules",
+        ] 
 
-    def get_course_image_url(self, obj):
-        return obj.course_image_url()
-
-    def get_time_remaining(self, obj):
-        return obj.time_remaining()
 
 class CourseCreateUpdateSerializer(serializers.ModelSerializer):
     category_id = serializers.PrimaryKeyRelatedField(

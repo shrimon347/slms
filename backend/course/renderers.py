@@ -1,7 +1,7 @@
 from rest_framework import renderers
 import json
 
-class UserRenderer(renderers.JSONRenderer):
+class CourseRenderer(renderers.JSONRenderer):
     # Set the charset to UTF-8 for proper encoding of the response
     charset = 'utf-8'
     

@@ -6,7 +6,6 @@ class CourseRepository:
     def get_all_courses():
         """Retrieve a all course by ID."""
         return Course.objects.all()
-        
 
     @staticmethod
     def get_courses_by_category_id(category_id):
@@ -14,9 +13,9 @@ class CourseRepository:
         return Course.objects.filter(category__id=category_id)
 
     @staticmethod
-    def get_course_by_slug(slug):
+    def get_courses_by_slug(slug):
         """Retrieve a course by its slug."""
-        return Course.objects.filter(slug=slug).first()
+        return Course.objects.get(slug=slug)
 
     @staticmethod
     def get_courses_by_category_name(category_name):
