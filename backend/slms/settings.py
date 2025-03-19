@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "core",
     "useraccount",
     "course",
+    "payment",
 ]
 
 CORS_ALLOWED_ORIGINS = [
