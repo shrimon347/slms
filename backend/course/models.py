@@ -32,7 +32,7 @@ class Course(models.Model):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     slug = models.SlugField(unique=True, blank=True, max_length=255)
-    demo_url = models.TextField() #demo url
+    demo_url = models.TextField()  # demo url
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
