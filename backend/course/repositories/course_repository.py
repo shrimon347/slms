@@ -16,6 +16,7 @@ class CourseRepository:
     def get_courses_by_slug(slug):
         """Retrieve a course by its slug."""
         return Course.objects.get(slug=slug)
+
     @staticmethod
     def get_courses_by_id(course_id):
         """Retrieve a course by its slug."""
@@ -27,6 +28,10 @@ class CourseRepository:
         if category:
             return Course.objects.filter(category=category)
         return Course.objects.none()
+
+    @staticmethod
+    def get_course_with_modules_and_lessons(course_id):
+        return Course.objects.prefetch_related("modules__lessons").get(id=course_id)
 
     @staticmethod
     def create(**data):

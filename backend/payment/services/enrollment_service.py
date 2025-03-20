@@ -1,3 +1,4 @@
+from course.repositories.course_repository import CourseRepository
 from payment.repositories.enrollment_repository import EnrollmentRepository
 
 
@@ -16,6 +17,21 @@ class EnrollmentService:
     def get_enrollment_details(enrollment_id):
         """Retrieves details of a specific enrollment"""
         return EnrollmentRepository.get_enrollment_by_id(enrollment_id)
+
+    @staticmethod
+    def get_enrolled_course(enrollment_id, student):
+        # Fetch the enrollment
+        enrollment = EnrollmentRepository.get_enrollment_by_id_and_student(
+            enrollment_id, student
+        )
+        if not enrollment:
+            return None
+
+        # Fetch the course with its related modules and lessons
+        course = CourseRepository.get_course_with_modules_and_lessons(
+            enrollment.course.id
+        )
+        return course
 
     @staticmethod
     def get_student_enrollments(student):

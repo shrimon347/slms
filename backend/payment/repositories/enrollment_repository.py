@@ -43,6 +43,15 @@ class EnrollmentRepository:
         return Enrollment.objects.filter(course=course)
 
     @staticmethod
+    def get_enrollment_by_id_and_student(enrollment_id, student):
+        try:
+            return Enrollment.objects.select_related("course").get(
+                id=enrollment_id, student=student
+            )
+        except Enrollment.DoesNotExist:
+            return None
+
+    @staticmethod
     def update_progress(enrollment_id, progress):
         """Updates student progress and issues a certificate if 100% completed"""
         enrollment = EnrollmentRepository.get_enrollment_by_id(enrollment_id)

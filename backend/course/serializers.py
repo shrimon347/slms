@@ -47,7 +47,9 @@ class ModuleSerializer(serializers.ModelSerializer):
 
     def get_lessons(self, obj):
         """Return only related lessons for this module"""
-        lessons = obj.lessons.all()  # This will return only related lessons
+        lessons = obj.lessons.all().order_by(
+            "order"
+        )  # This will return only related lessons
         return LessonSerializer(lessons, many=True).data
 
     def create(self, validated_data):
@@ -55,22 +57,22 @@ class ModuleSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         return module_service().update_module(instance.id, **validated_data)
-    
+
+
 class ModuleExcludedLessonsSerializer(serializers.ModelSerializer):
     """Serializer for Modules without Lessons"""
 
     class Meta:
         model = Module
-        fields = [
-            "title",
-            "description",
-            "order"
-        ]
+        fields = ["title", "description", "order"]
+
 
 class CourseDetailSerializer(serializers.ModelSerializer):
     """Serializer for Course with related data"""
 
-    category = serializers.CharField(source="category.name")  # Get category name instead of ID
+    category = serializers.CharField(
+        source="category.name"
+    )  # Get category name instead of ID
     modules = ModuleExcludedLessonsSerializer(many=True, read_only=True)
 
     class Meta:
@@ -93,7 +95,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             "updated_at",
             "time_remaining",
             "modules",
-        ] 
+        ]
 
 
 class CourseCreateUpdateSerializer(serializers.ModelSerializer):
@@ -183,3 +185,16 @@ class CourseListSerializer(serializers.ModelSerializer):
             "slug",
             "course_image_url",
         ]
+
+
+class CourseEnrollmentSerializer(serializers.ModelSerializer):
+    modules = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Course
+        fields = ["id", "title", "description", "modules"]
+
+    def get_modules(self, course):
+        """Only return modules related to the enrolled student's course"""
+        modules = course.modules.prefetch_related("lessons").all()
+        return ModuleSerializer(modules, many=True).data

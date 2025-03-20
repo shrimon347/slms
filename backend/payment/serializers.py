@@ -95,6 +95,7 @@ class EnrollmentListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Enrollment
         fields = [
+            "id",
             "course_title",
             "course_slug",
             "progress",
