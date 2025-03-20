@@ -1,85 +1,118 @@
 from course.services.course_service import CourseService
-from django.forms import ValidationError
+from payment.serializers import (
+    CheckoutSerializer,
+    EnrollmentListSerializer,
+    PaymentResponseSerializer,
+    VerifyPaymentSerializer,
+)
+from payment.services.enrollment_service import EnrollmentService
+from payment.services.payment_service import PaymentService
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from services.enrollment_service import EnrollmentService
-from services.payment_service import PaymentService
 from useraccount.permissions import IsAdminOrStaff
 from useraccount.renderers import UserRenderer
 
 
-class EnrollmentView(APIView):
+class CheckoutView(APIView):
+    """
+    Handles the checkout process: Creates an enrollment with 'pending' status before payment.
+    """
+
     permission_classes = [IsAuthenticated]
     renderer_classes = [UserRenderer]
 
     def post(self, request):
-        student = request.user
-        course_id = request.data.get("course_id")
+        # Initialize the serializer with request data and context
+        serializer = CheckoutSerializer(data=request.data, context={"request": request})
 
-        # Check if already enrolled
-        if EnrollmentService.enroll_student(student, course_id) is None:
-            return Response(
-                {"message": "Already enrolled"}, status=status.HTTP_400_BAD_REQUEST
-            )
+        if serializer.is_valid():
+            user = request.user
+            validated_data = serializer.validated_data
+            course_id = validated_data.get("course_id")
+            payment_method = validated_data.get("payment_method")
+            amount = validated_data.get("amount")
+            transaction_id = validated_data.get("transaction_id")
 
-        # Check if seats are available
-        try:
+            # Get course from validated course_id
             course = CourseService.get_course_by_id(course_id)
-            if course.remaining_seat <= 0:
-                return Response(
-                    {"message": "No seats available"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        except Exception as e:
-            return Response(
-                {"message": "Course not found"}, status=status.HTTP_404_NOT_FOUND
+
+            # Create enrollment with 'pending' status
+            enrollment = EnrollmentService.enroll_student(user, course)
+
+            # Create payment record
+            payment = PaymentService.process_payment(
+                enrollment, amount, payment_method, transaction_id
             )
 
-        # Create Enrollment with pending payment
-        enrollment = EnrollmentService.enroll_student(student, course)
+            # Serialize the payment response
+            payment_serializer = PaymentResponseSerializer(payment)
 
-        return Response(
-            {"message": "Enrollment created. Proceed to payment."},
-            status=status.HTTP_201_CREATED,
-        )
+            return Response(
+                {
+                    "message": "Checkout initiated, proceed to payment within 24 hours it confirmed",
+                    "payment": payment_serializer.data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PaymentView(APIView):
-    permission_classes = [IsAuthenticated]
+class VerifyPaymentView(APIView):
+    """
+    Hadle payment verification and automatic enrollment activation
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminOrStaff]
+    renderer_classes = [UserRenderer]
 
     def post(self, request):
-        student = request.user
-        enrollment_id = request.data.get("enrollment_id")
-        payment_method = request.data.get("payment_method")
-        transaction_id = request.data.get("transaction_id")
+        serializer = VerifyPaymentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        enrollment = EnrollmentService.get_enrollment_by_id(enrollment_id)
-        if (
-            not enrollment
-            or enrollment.student != student
-            or enrollment.payment_status != "pending"
-        ):
-            return Response(
-                {"message": "Invalid enrollment or already paid."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        transaction_id = serializer.validated_data.get("transaction_id")
+        status_value = serializer.validated_data.get("status")
 
-        # Process payment
-        payment = PaymentService.process_payment(
-            enrollment, enrollment.course.price, payment_method, transaction_id
-        )
+        payment = PaymentService.get_payment_details_by_transaction(transaction_id)
+
         if not payment:
             return Response(
-                {"message": "Payment processing failed."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"error": "Payment record not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        updated_payment = PaymentService.update_payment_status(
+            transaction_id, status_value
+        )
+
+        if updated_payment:
+            # If payment status updated successfully and enrollment activated
+            return Response(
+                {"message": "Payment successful, enrollment activated"},
+                status=status.HTTP_200_OK,
             )
 
-        # Confirm payment and update enrollment
-        PaymentService.confirm_payment(transaction_id)
-
         return Response(
-            {"message": "Payment successful, admin will verify."},
-            status=status.HTTP_200_OK,
+            {"error": "Payment verification failed or not found"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class EnrollmentListView(APIView):
+    """
+    Retrieves all enrollments for the logged-in student.
+    """
+
+    permission_classes = [IsAuthenticated]
+    renderer_classes = [UserRenderer]
+
+    def get(self, request):
+        student = request.user
+        enrollments = EnrollmentService.get_active_student_enrollments(student)
+        if enrollments:
+            serializer = EnrollmentListSerializer(enrollments, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "No active enrollment found"}, status=status.HTTP_404_NOT_FOUND
         )

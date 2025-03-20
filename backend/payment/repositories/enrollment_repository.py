@@ -1,6 +1,6 @@
-from course.models import Enrollment, Payment
 from django.db import IntegrityError
 from django.utils.timezone import now
+from payment.models import Enrollment
 
 
 class EnrollmentRepository:

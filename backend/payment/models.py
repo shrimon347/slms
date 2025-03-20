@@ -15,7 +15,7 @@ class EnrollmentStatus(models.TextChoices):
 
 class PaymentStatus(models.TextChoices):
     PENDING = "pending", "Pending"
-    COMPLETED = "completed", "Completed"
+    SUCCESS = "success", "Success"
     FAILED = "failed", "Failed"
 
 
@@ -49,7 +49,7 @@ class Enrollment(models.Model):
     certificate_issued = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.student.username} - {self.course.title} - {self.status}"
+        return f"{self.student.full_name} - {self.course.title} - {self.status}"
 
 
 # Payment Model (Linked to Enrollment)
@@ -68,4 +68,4 @@ class Payment(models.Model):
     payment_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.enrollment.student.username} - {self.enrollment.course.title} - {self.status}"
+        return f"{self.enrollment.student.full_name} - {self.enrollment.course.title} - {self.status}"

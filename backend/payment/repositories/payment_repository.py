@@ -1,6 +1,5 @@
-from course.models import Enrollment, Payment
 from django.db import IntegrityError
-from django.utils.timezone import now
+from payment.models import Payment
 
 
 class PaymentRepository:
@@ -52,7 +51,7 @@ class PaymentRepository:
                 # Auto-activate enrollment
                 enrollment = payment.enrollment
                 enrollment.status = "active"
-                enrollment.payment_status = "completed"
+                enrollment.payment_status = "success"
                 enrollment.save()
 
             return payment

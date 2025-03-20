@@ -1,22 +1,53 @@
-from repositories.enrollment_repository import EnrollmentRepository
+from payment.repositories.enrollment_repository import EnrollmentRepository
 
 
 class EnrollmentService:
-    @staticmethod
-    def enroll_student(student, course):
-        return EnrollmentRepository.create_enrollment(student, course)
+    """Handles business logic for enrollments"""
 
     @staticmethod
-    def update_progress(enrollment_id, progress):
+    def enroll_student(student, course):
+        """Enrolls a student in a course if not already enrolled"""
+        enrollment = EnrollmentRepository.get_enrollment(student, course)
+        if not enrollment:
+            enrollment = EnrollmentRepository.create_enrollment(student, course)
+        return enrollment
+
+    @staticmethod
+    def get_enrollment_details(enrollment_id):
+        """Retrieves details of a specific enrollment"""
+        return EnrollmentRepository.get_enrollment_by_id(enrollment_id)
+
+    @staticmethod
+    def get_student_enrollments(student):
+        """Retrieves all enrollments for a student"""
+        return EnrollmentRepository.get_enrollments_by_student(student)
+
+    @staticmethod
+    def get_active_student_enrollments(student):
+        """Retrieves active enrollments for a student"""
+        return EnrollmentRepository.get_active_enrollments(student)
+
+    @staticmethod
+    def get_course_enrollments(course):
+        """Retrieves all enrollments for a course"""
+        return EnrollmentRepository.get_enrollments_by_course(course)
+
+    @staticmethod
+    def update_student_progress(enrollment_id, progress):
+        """Updates the student's progress and issues a certificate if completed"""
         return EnrollmentRepository.update_progress(enrollment_id, progress)
 
     @staticmethod
-    def cancel_enrollment(enrollment_id):
-        return EnrollmentRepository.update_status(enrollment_id, "cancelled")
+    def change_enrollment_status(enrollment_id, status):
+        """Updates the status of an enrollment"""
+        return EnrollmentRepository.update_status(enrollment_id, status)
 
     @staticmethod
-    def complete_enrollment(enrollment_id):
-        enrollment = EnrollmentRepository.get_enrollment_by_id(enrollment_id)
-        if enrollment:
-            return EnrollmentRepository.update_progress(enrollment_id, 100)
-        return None
+    def process_payment(enrollment_id, payment_status):
+        """Updates the payment status of an enrollment and activates it if paid"""
+        return EnrollmentRepository.update_payment_status(enrollment_id, payment_status)
+
+    @staticmethod
+    def remove_enrollment(enrollment_id):
+        """Deletes an enrollment"""
+        return EnrollmentRepository.delete_enrollment(enrollment_id)
