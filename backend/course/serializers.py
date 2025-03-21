@@ -1,7 +1,8 @@
+import uuid
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from .models import Course, CourseCategory, Lesson, Module
+from .models import Course, CourseCategory, Lesson, Module, StudentProgress
 from .services import (
     course_category_service,
     course_service,
@@ -198,3 +199,40 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
         """Only return modules related to the enrolled student's course"""
         modules = course.modules.prefetch_related("lessons").all()
         return ModuleSerializer(modules, many=True).data
+
+
+# class StudentProgressSerializer(serializers.ModelSerializer):
+#     lesson_id = serializers.IntegerField(source="lesson.id", read_only=True)
+#     quiz_id = serializers.IntegerField(source="quiz.id", read_only=True)
+#     student_id = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = StudentProgress
+#         fields = "__all__"
+
+#     def get_student_id(self, obj):
+#         return str(obj.student.id) if obj.student else None
+
+#     def to_representation(self, instance):
+#         # Get the default representation
+#         representation = super().to_representation(instance)
+
+#         # Convert any UUID fields to strings
+#         for field in representation:
+#             if isinstance(representation[field], uuid.UUID):
+#                 representation[field] = str(representation[field])
+
+#         # If student is directly included in the fields
+#         if "student" in representation and representation["student"] is not None:
+#             representation["student"] = str(representation["student"])
+
+#         return representation
+
+
+class CourseProgressSerializer(serializers.ModelSerializer):
+    lesson_id = serializers.CharField(source="lesson.id", read_only=True)
+    quiz_id = serializers.CharField(source="quiz.id", read_only=True)
+
+    class Meta:
+        model = Course
+        fields = ["id", "title", "progress"]

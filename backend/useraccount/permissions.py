@@ -1,3 +1,4 @@
+import re
 from payment.models import Enrollment
 from rest_framework.permissions import BasePermission
 
@@ -23,12 +24,12 @@ class IsStudent(BasePermission):
     def has_permission(self, request, view):
         if not request.user.is_authenticated or request.user.role != "student":
             return False
-        enrollemnt_id = view.kwargs.get("enrollment_id")  # Extract enrollemnt ID from URL if needed
+        enrollment_id=view.kwargs.get("enrollment_id")
 
-        if enrollemnt_id:
+        if enrollment_id:
             # Check if student is enrolled with successful payment
             return Enrollment.objects.filter(
-                student=request.user, id=enrollemnt_id, payment_status="success"
+                student=request.user, id=enrollment_id, payment_status="success"
             ).exists()
 
         return False

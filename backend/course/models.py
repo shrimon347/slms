@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
+from useraccount.models import User
 
 
 # course categories
@@ -65,7 +66,6 @@ class Module(models.Model):
     description = models.TextField()
     order = models.PositiveIntegerField()  # Position of module in the course
     created_at = models.DateTimeField(auto_now_add=True)
-    completed = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
@@ -80,7 +80,28 @@ class Lesson(models.Model):
     duration = models.IntegerField()  # Duration in minutes
     order = models.PositiveIntegerField()  # Position of lesson in the module
     created_at = models.DateTimeField(auto_now_add=True)
-    completed = models.BooleanField(default=False)
+    
 
     def __str__(self):
         return self.title
+
+
+class Quiz(models.Model):
+    module = models.OneToOneField(Module, on_delete=models.CASCADE, related_name="quiz")
+    title = models.CharField(max_length=255)
+    total_questions = models.PositiveIntegerField()
+    passing_score = models.PositiveIntegerField()
+
+    def __str__(self):
+        return self.title
+
+
+class StudentProgress(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="progress")
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, null=True, blank=True)
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, null=True, blank=True)
+    completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.student.full_name} - {self.lesson or self.quiz} - {'Completed' if self.completed else 'In Progress'}"

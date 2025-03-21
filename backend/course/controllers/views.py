@@ -1,3 +1,4 @@
+from course.models import Lesson, Quiz
 from course.renderers import CourseRenderer
 from course.serializers import (
     CourseDetailSerializer,
@@ -5,7 +6,11 @@ from course.serializers import (
     CourseListSerializer,
 )
 from course.services.course_service import CourseService
+from course.services.lesson_service import LessonService
+from course.services.quiz_service import QuizService
+from course.services.student_progress_service import StudentProgressService
 from django.core.exceptions import ObjectDoesNotExist
+from payment.models import Enrollment
 from payment.services.enrollment_service import EnrollmentService
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -97,4 +102,82 @@ class CourseEnrollmentModuleLessonView(APIView):
 
         # Serialize the course with modules and lessons
         serializer = CourseEnrollmentSerializer(course)
-        return Response({'course-enroll': serializer.data}, status=status.HTTP_200_OK)
+        return Response({"course-enroll": serializer.data}, status=status.HTTP_200_OK)
+
+
+class CompleteLessonAPIView(APIView):
+    """
+    Complete the lesson and update progress.
+    """
+
+    permission_classes = [IsAuthenticated, IsStudent]
+    renderer_classes = [UserRenderer]
+
+    def post(self, request, lesson_id, enrollment_id):
+        try:
+            # Ensure the student is enrolled with the provided enrollment_id
+            if not Enrollment.objects.filter(
+                student=request.user, id=enrollment_id, payment_status="success"
+            ).exists():
+                return Response(
+                    {
+                        "error": "You must be enrolled in the course to complete this lesson."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Get the lesson by ID
+            lesson = LessonService.get_lesson_by_id(lesson_id)
+
+            # Mark the lesson as completed
+            StudentProgressService.complete_lesson(request.user, lesson)
+
+            return Response(
+                {
+                    "message": "Lesson completed!",
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Lesson.DoesNotExist:
+            return Response(
+                {"error": "Lesson not found!"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class CompleteQuizAPIView(APIView):
+    """
+    Complete the quiz and update progress.
+    """
+
+    permission_classes = [IsAuthenticated, IsStudent]
+    renderer_classes = [UserRenderer]
+
+    def post(self, request, quiz_id, enrollment_id):
+        try:
+            # Ensure the student is enrolled with the provided enrollment_id
+            if not Enrollment.objects.filter(
+                student=request.user, id=enrollment_id, payment_status="success"
+            ).exists():
+                return Response(
+                    {
+                        "error": "You must be enrolled in the course to complete this quiz."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Get the quiz by ID
+            quiz = QuizService.get_quiz_by_id(quiz_id)
+
+            # Mark the quiz as completed
+            StudentProgressService.complete_quiz(request.user, quiz)
+
+            return Response(
+                {
+                    "message": "Quiz completed!",
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Quiz.DoesNotExist:
+            return Response(
+                {"error": "Quiz not found!"}, status=status.HTTP_404_NOT_FOUND
+            )
