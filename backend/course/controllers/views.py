@@ -1,6 +1,7 @@
 from course.models import Lesson, Quiz
 from course.renderers import CourseRenderer
 from course.serializers import (
+    CourseCreateUpdateSerializer,
     CourseDetailSerializer,
     CourseEnrollmentSerializer,
     CourseListSerializer,
@@ -18,6 +19,60 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from useraccount.permissions import IsAdminOrStaff, IsStudent
 from useraccount.renderers import UserRenderer
+
+
+class CourseCreateUpdateAPIView(APIView):
+    """
+    API View to handle Course Creation, Update, and Deletion.
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminOrStaff]
+    renderer_classes = [UserRenderer]
+
+    def post(self, request):
+        """Create a new course."""
+        serializer = CourseCreateUpdateSerializer(data=request.data)
+        if serializer.is_valid():
+            course = serializer.save()
+            return Response(
+                {"message": "Course created successfully!", "course": serializer.data},
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, course_id):
+        """Update an existing course."""
+        try:
+            course = CourseService.get_course_by_id(course_id)
+        except course.DoesNotExist:
+            return Response(
+                {"error": "Course not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = CourseCreateUpdateSerializer(
+            course, data=request.data, partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"message": "Course updated successfully!", "course": serializer.data}
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, course_id):
+        """Delete an existing course."""
+        try:
+            course = CourseService.get_course_by_id(course_id)
+            course.delete()
+            return Response(
+                {"message": "Course deleted successfully!"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        except course.DoesNotExist:
+            return Response(
+                {"error": "Course not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
 
 class CourseListView(APIView):

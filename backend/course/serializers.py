@@ -1,4 +1,6 @@
 import uuid
+
+from django.forms import ValidationError
 from django.utils.text import slugify
 from rest_framework import serializers
 
@@ -99,77 +101,77 @@ class CourseDetailSerializer(serializers.ModelSerializer):
         ]
 
 
-class CourseCreateUpdateSerializer(serializers.ModelSerializer):
-    category_id = serializers.PrimaryKeyRelatedField(
-        queryset=CourseCategory.objects.all(), source="category", write_only=True
-    )
-    category_name = serializers.CharField(
-        write_only=True, required=False
-    )  # For custom category name
+from django.utils.text import slugify
+from rest_framework import serializers
 
-    modules = serializers.SerializerMethodField()  # Lazy loading related modules
+from .models import Course, CourseCategory
+
+
+class CourseCreateUpdateSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(
+        write_only=True, required=True
+    )  # To handle category creation if it doesn't exist
 
     class Meta:
         model = Course
         fields = [
             "id",
-            "category",
-            "category_id",
-            "category_name",
+            "category_name",  # To create or retrieve category by name
             "title",
             "description",
             "price",
             "duration",
-            "demo_url",
+            "batch",
+            "remaining_seat",
             "start_date",
             "end_date",
-            "slug",
+            "slug",  # Slug for the course, auto-generated if not provided
+            "demo_url",
             "created_at",
             "updated_at",
-            "modules",
         ]
         read_only_fields = ["slug", "created_at", "updated_at"]
 
-    def get_modules(self, obj):
-        """Return modules as an object, with lessons inside"""
-        modules_data = {}
-        for module in obj.modules.all():
-            modules_data[module.title] = {
-                "lessons": LessonSerializer(module.lessons.all(), many=True).data
-            }
-        return modules_data
-
     def create(self, validated_data):
-        """Create a new course and handle category creation if necessary"""
-        category_name = validated_data.get("category_name", None)
-        if category_name:
-            # Check if category exists case-insensitively, if not create it
-            category, created = CourseCategory.objects.get_or_create(
-                name__iexact=category_name
-            )
-            validated_data["category"] = category
+        """Create a new course and handle category creation."""
+        category_name = validated_data.pop("category_name", None)
 
-        validated_data["slug"] = slugify(validated_data["title"])
-        return course_service().create_course(
-            category_id=validated_data.pop("category_id", None), **validated_data
+        # Ensure the category exists or create it
+        category, created = CourseCategory.objects.get_or_create(
+            name__iexact=category_name, defaults={"name": category_name}
         )
+        validated_data["category"] = category
+
+        validated_data["slug"] = slugify(
+            validated_data["title"]
+        )  # Ensure a slug is created
+        return Course.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
-        """Update an existing course, and handle category update if necessary"""
-        category_name = validated_data.get("category_name", None)
+        """Update an existing course, and handle category update if necessary."""
+        category_name = validated_data.pop("category_name", None)
+
         if category_name:
-            # Check if category exists case-insensitively, if not create it
             category, created = CourseCategory.objects.get_or_create(
-                name__iexact=category_name
+                name__iexact=category_name, defaults={"name": category_name}
             )
             validated_data["category"] = category
 
-        validated_data["slug"] = slugify(validated_data.get("title", instance.title))
-        return course_service().update_course(
-            instance.id,
-            category_id=validated_data.pop("category_id", None),
-            **validated_data
-        )
+        new_slug = slugify(validated_data.get("title", instance.title))
+
+        # Check if the new slug already exists (and not for the current instance)
+        if Course.objects.filter(slug=new_slug).exclude(id=instance.id).exists():
+            raise ValidationError(
+                "The slug generated from the title is already in use. Please change the title."
+            )
+
+        # Assign the new slug
+        validated_data["slug"] = new_slug
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 
 class CourseListSerializer(serializers.ModelSerializer):
@@ -199,34 +201,6 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
         """Only return modules related to the enrolled student's course"""
         modules = course.modules.prefetch_related("lessons").all()
         return ModuleSerializer(modules, many=True).data
-
-
-# class StudentProgressSerializer(serializers.ModelSerializer):
-#     lesson_id = serializers.IntegerField(source="lesson.id", read_only=True)
-#     quiz_id = serializers.IntegerField(source="quiz.id", read_only=True)
-#     student_id = serializers.SerializerMethodField()
-
-#     class Meta:
-#         model = StudentProgress
-#         fields = "__all__"
-
-#     def get_student_id(self, obj):
-#         return str(obj.student.id) if obj.student else None
-
-#     def to_representation(self, instance):
-#         # Get the default representation
-#         representation = super().to_representation(instance)
-
-#         # Convert any UUID fields to strings
-#         for field in representation:
-#             if isinstance(representation[field], uuid.UUID):
-#                 representation[field] = str(representation[field])
-
-#         # If student is directly included in the fields
-#         if "student" in representation and representation["student"] is not None:
-#             representation["student"] = str(representation["student"])
-
-#         return representation
 
 
 class CourseProgressSerializer(serializers.ModelSerializer):
