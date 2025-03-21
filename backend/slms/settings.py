@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     "corsheaders",
     "core",
     "useraccount",
+    "course",
+    "payment",
 ]
 
 CORS_ALLOWED_ORIGINS = [
