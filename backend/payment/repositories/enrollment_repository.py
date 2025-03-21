@@ -1,4 +1,4 @@
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.utils.timezone import now
 from payment.models import Enrollment
 
@@ -7,12 +7,18 @@ class EnrollmentRepository:
     """Handles database operations for Enrollment"""
 
     @staticmethod
+    @transaction.atomic
     def create_enrollment(student, course):
-        """Creates an enrollment if it does not already exist"""
+        """Creates an enrollment if it does not already exist abd decreses available seats"""
         try:
+            if course.remaining_seat <= 0:
+                return None
             enrollment, created = Enrollment.objects.get_or_create(
                 student=student, course=course
             )
+            if created:
+                course.remaining_seat -= 1
+                course.save()
             return enrollment
         except IntegrityError:
             return None
@@ -95,3 +101,18 @@ class EnrollmentRepository:
             enrollment.delete()
             return True
         return False
+
+    @staticmethod
+    @transaction.atomic
+    def cancel_enrollment(enrollment):
+        """Cancels enrollment and restores a seat"""
+        if enrollment.status != "cancelled":
+            enrollment.status = "cancelled"
+            enrollment.save()
+
+            # Restore the seat
+            course = enrollment.course
+            course.remaining_seat += 1
+            course.save()
+
+        return enrollment
