@@ -4,7 +4,16 @@ from django.forms import ValidationError
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from .models import Course, CourseCategory, Lesson, Module, StudentProgress
+from .models import (
+    Option,
+    Course,
+    CourseCategory,
+    Lesson,
+    MCQQuestion,
+    Module,
+    Quiz,
+    StudentProgress,
+)
 from .services import (
     course_category_service,
     course_service,
@@ -210,3 +219,32 @@ class CourseProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = ["id", "title", "progress"]
+
+
+class OptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Option
+        fields = ["id", "option_text", "order", "is_correct"]
+
+
+class MCQQuestionSerializer(serializers.ModelSerializer):
+    options = OptionSerializer(many=True)
+
+    class Meta:
+        model = MCQQuestion
+        fields = ["id", "question_text", "correct_option_index", "options"]
+
+
+class QuizSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Quiz
+        fields = [
+            "id",
+            "module",
+            "title",
+            "total_questions",
+            "passing_score",
+            "time_limit",
+        ]
+
+

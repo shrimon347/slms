@@ -1,19 +1,23 @@
-from course.models import Lesson, Quiz
+from course.models import Lesson, MCQQuestion, Module, Option, Quiz
 from course.renderers import CourseRenderer
 from course.serializers import (
     CourseCreateUpdateSerializer,
     CourseDetailSerializer,
     CourseEnrollmentSerializer,
     CourseListSerializer,
+    MCQQuestionSerializer,
+    QuizSerializer,
 )
 from course.services.course_service import CourseService
 from course.services.lesson_service import LessonService
 from course.services.quiz_service import QuizService
 from course.services.student_progress_service import StudentProgressService
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
 from payment.models import Enrollment
 from payment.services.enrollment_service import EnrollmentService
 from rest_framework import status
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -236,3 +240,200 @@ class CompleteQuizAPIView(APIView):
             return Response(
                 {"error": "Quiz not found!"}, status=status.HTTP_404_NOT_FOUND
             )
+
+
+class MCQQuestionAPIView(APIView):
+
+    def post(self, request, quiz_id):
+        try:
+            # Check if the quiz exists
+            quiz = Quiz.objects.get(id=quiz_id)
+        except Quiz.DoesNotExist:
+            raise NotFound(detail="Quiz not found")
+
+        # Get the data from the request
+        question_text = request.data.get("question_text")
+        correct_option_index = request.data.get("correct_option_index")
+        Options_data = request.data.get("Options")
+
+        if not question_text or not correct_option_index or len(Options_data) != 4:
+            raise ValidationError(
+                "Each question must have a question text, a correct Option index, and exactly 4 Options."
+            )
+
+        # Create the question and Options in a transaction to ensure atomicity
+        try:
+            with transaction.atomic():
+                # Create the MCQ Question first, which will have an ID after saving
+                question = MCQQuestion.objects.create(
+                    quiz=quiz,
+                    question_text=question_text,
+                    correct_option_index=correct_option_index,
+                )
+
+                # Now create the related Options after the question is saved and has an ID
+                for idx, (option_text, is_correct) in enumerate(Options_data):
+                    Option.objects.create(
+                        question=question,
+                        option_text=option_text,
+                        order=idx + 1,
+                        is_correct=is_correct,
+                    )
+
+            # Serialize and return the newly created question and Options
+            serializer = MCQQuestionSerializer(question)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            raise ValidationError(f"Error creating question: {str(e)}")
+
+    def put(self, request, question_id):
+        try:
+            # Check if the question exists
+            question = MCQQuestion.objects.get(id=question_id)
+        except MCQQuestion.DoesNotExist:
+            raise NotFound(detail="Question not found")
+
+        # Get the data from the request
+        question_text = request.data.get("question_text")
+        correct_option_index = request.data.get("correct_option_index")
+        Options_data = request.data.get("Options")
+
+        if not question_text or not correct_option_index or len(Options_data) != 4:
+            raise ValidationError(
+                "Each question must have a question text, a correct Option index, and exactly 4 Options."
+            )
+
+        # Update the question and Options in a transaction to ensure atomicity
+        try:
+            with transaction.atomic():
+                # Update the question itself
+                question.question_text = question_text
+                question.correct_option_index = correct_option_index
+                question.save()
+
+                # Update the Options
+                for idx, (option_text, is_correct) in enumerate(Options_data):
+                    Option = question.Options.get(order=idx + 1)
+                    Option.option_text = option_text
+                    Option.is_correct = is_correct
+                    Option.save()
+
+            # Serialize and return the updated question and Options
+            serializer = MCQQuestionSerializer(question)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            raise ValidationError(f"Error updating question: {str(e)}")
+
+    def delete(self, request, question_id):
+        try:
+            # Check if the question exists
+            question = MCQQuestion.objects.get(id=question_id)
+        except MCQQuestion.DoesNotExist:
+            raise NotFound(detail="Question not found")
+
+        # Delete the question and related Options in a transaction to ensure atomicity
+        try:
+            with transaction.atomic():
+                question.Options.all().delete()  # Delete all Options associated with the question
+                question.delete()  # Delete the question itself
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            raise ValidationError(f"Error deleting question: {str(e)}")
+
+    def get(self, request, quiz_id):
+        try:
+            # Check if the quiz exists
+            quiz = Quiz.objects.get(id=quiz_id)
+        except Quiz.DoesNotExist:
+            raise NotFound(detail="Quiz not found")
+
+        # Get all questions for the quiz
+        questions = quiz.questions.all()
+        serializer = MCQQuestionSerializer(questions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class QuizCreateAPIView(APIView):
+
+    def post(self, request):
+        module_id = request.data.get("module_id")
+        title = request.data.get("title")
+        total_questions = request.data.get("total_questions")
+        passing_score = request.data.get("passing_score")
+        time_limit = request.data.get("time_limit", 10 * 60)  # Default to 10 minutes
+
+        # Validate module existence
+        try:
+            module = Module.objects.get(id=module_id)
+        except Module.DoesNotExist:
+            return Response(
+                {"detail": "Module not found."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        quiz = Quiz.objects.create(
+            module=module,
+            title=title,
+            total_questions=total_questions,
+            passing_score=passing_score,
+            time_limit=time_limit,
+        )
+
+        serializer = QuizSerializer(quiz)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class QuizListAPIView(APIView):
+
+    def get(self, request):
+        quizzes = Quiz.objects.all()
+        serializer = QuizSerializer(quizzes, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class QuizRetrieveAPIView(APIView):
+
+    def get(self, request, quiz_id):
+        try:
+            quiz = Quiz.objects.get(id=quiz_id)
+        except Quiz.DoesNotExist:
+            return Response(
+                {"detail": "Quiz not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = QuizSerializer(quiz)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class QuizUpdateAPIView(APIView):
+
+    def put(self, request, quiz_id):
+        try:
+            quiz = Quiz.objects.get(id=quiz_id)
+        except Quiz.DoesNotExist:
+            return Response(
+                {"detail": "Quiz not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        quiz.title = request.data.get("title", quiz.title)
+        quiz.total_questions = request.data.get("total_questions", quiz.total_questions)
+        quiz.passing_score = request.data.get("passing_score", quiz.passing_score)
+        quiz.time_limit = request.data.get("time_limit", quiz.time_limit)
+
+        quiz.save()
+        serializer = QuizSerializer(quiz)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class QuizDeleteAPIView(APIView):
+
+    def delete(self, request, quiz_id):
+        try:
+            quiz = Quiz.objects.get(id=quiz_id)
+        except Quiz.DoesNotExist:
+            return Response(
+                {"detail": "Quiz not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        quiz.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

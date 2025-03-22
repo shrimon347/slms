@@ -1,43 +1,48 @@
-from course.models import Quiz
+from course.models import Option, MCQQuestion, Quiz
 
 
-class quizRepository:
+class QuizRepository:
     @staticmethod
-    def get_quiz_by_id(quiz_id: int):
-        """Retrieve a single quiz by ID."""
-        try:
-            return Quiz.objects.get(id=quiz_id)
-        except Quiz.DoesNotExist:
-            return None
+    def get_quiz_by_id(quiz_id):
+        return Quiz.objects.get(id=quiz_id)
 
     @staticmethod
-    def get_quiz_all(module_id: int):
-        """Retrieve all quizs for a specific module."""
-        return Quiz.objects.filter(module_id=module_id)
+    def get_questions_for_quiz(quiz):
+        return quiz.questions.all()
 
     @staticmethod
-    def create(**data):
-        """Create a new quiz."""
-        return Quiz.objects.create(**data)
+    def get_Options_for_question(question):
+        return question.Options.all()
 
     @staticmethod
-    def update(quiz_id: int, **data):
-        """Update an existing quiz."""
-        try:
-            quiz = Quiz.objects.get(id=quiz_id)
-            for key, value in data.items():
-                setattr(quiz, key, value)
-            quiz.save()
-            return quiz
-        except Quiz.DoesNotExist:
-            return None
+    def create_mcq_question(quiz, question_text, correct_option_index):
+        return MCQQuestion.objects.create(
+            quiz=quiz,
+            question_text=question_text,
+            correct_option_index=correct_option_index,
+        )
 
     @staticmethod
-    def delete(quiz_id: int):
-        """Delete a quiz."""
-        try:
-            quiz = Quiz.objects.get(id=quiz_id)
-            quiz.delete()
-            return True
-        except Quiz.DoesNotExist:
-            return False
+    def update_mcq_question(question, question_text, correct_option_index):
+        question.question_text = question_text
+        question.correct_O
+        ption_index = correct_option_index
+        question.save()
+        return question
+
+    @staticmethod
+    def delete_mcq_question(question):
+        question.delete()
+
+    @staticmethod
+    def create_Option(question, option_text, order, is_correct):
+        return Option.objects.create(
+            question=question,
+            option_text=option_text,
+            order=order,
+            is_correct=is_correct,
+        )
+
+    @staticmethod
+    def delete_Option(Option):
+        Option.delete()

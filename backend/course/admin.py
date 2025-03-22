@@ -1,4 +1,13 @@
-from course.models import Course, CourseCategory, Lesson, Module, Quiz, StudentProgress
+from course.models import (
+    Course,
+    CourseCategory,
+    Lesson,
+    MCQQuestion,
+    Module,
+    Option,
+    Quiz,
+    StudentProgress,
+)
 from django.contrib import admin
 
 # Register your models here.
@@ -8,3 +17,5 @@ admin.site.register(Module)
 admin.site.register(Lesson)
 admin.site.register(Quiz)
 admin.site.register(StudentProgress)
+admin.site.register(MCQQuestion)
+admin.site.register(Option)

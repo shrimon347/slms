@@ -1,5 +1,8 @@
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+from django.forms import ValidationError
 from django.utils import timezone
 from django.utils.text import slugify
 from useraccount.models import User
@@ -80,7 +83,6 @@ class Lesson(models.Model):
     duration = models.IntegerField()  # Duration in minutes
     order = models.PositiveIntegerField()  # Position of lesson in the module
     created_at = models.DateTimeField(auto_now_add=True)
-    
 
     def __str__(self):
         return self.title
@@ -91,9 +93,74 @@ class Quiz(models.Model):
     title = models.CharField(max_length=255)
     total_questions = models.PositiveIntegerField()
     passing_score = models.PositiveIntegerField()
+    time_limit = models.PositiveIntegerField(
+        default=10 * 60
+    )  # Time in seconds (10 minutes)
 
     def __str__(self):
         return self.title
+
+
+class MCQQuestion(models.Model):
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
+    question_text = models.CharField(max_length=512)
+    correct_option_index = (
+        models.PositiveIntegerField()
+    )  # Index of correct option (1, 2, 3, 4)
+
+    def __str__(self):
+        return self.question_text
+
+    def get_options(self):
+        return self.options.all()
+
+    def clean(self):
+        """Ensure each question has exactly 4 options and one correct option."""
+        if (
+            not self.pk
+        ):  # Only validate if the question has been saved (has a primary key)
+            return
+
+        if self.options.count() != 4:
+            raise ValidationError("Each question must have exactly 4 options.")
+
+        correct_options = self.options.filter(is_correct=True)
+        if correct_options.count() != 1:
+            raise ValidationError("Each question must have exactly 1 correct option.")
+
+    def save(self, *args, **kwargs):
+        """Save the question only if it does not exceed 4 options."""
+        super().save(*args, **kwargs)  # Save the instance first
+
+        if self.options.count() > 4:
+            raise ValidationError("Each question can have at most 4 options.")
+
+
+class Option(models.Model):
+    question = models.ForeignKey(
+        MCQQuestion, on_delete=models.CASCADE, related_name="options"
+    )
+    option_text = models.CharField(max_length=255)
+    order = models.PositiveIntegerField()  # Order for display (1, 2, 3, 4)
+    is_correct = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.option_text
+
+    class Meta:
+        ordering = ["order"]  # Ensures options are retrieved in the correct order
+
+    def clean(self):
+        """Ensure that a question cannot have more than 4 options."""
+        if self.question.options.count() >= 4 and self.pk is None:
+            raise ValidationError("Each question can have at most 4 options.")
+
+
+# Signal to validate that there are no more than 4 options for each question
+@receiver(pre_save, sender=Option)
+def validate_option_count(sender, instance, **kwargs):
+    if instance.question.options.count() >= 4 and instance.pk is None:
+        raise ValidationError("Each question can have at most 4 options.")
 
 
 class StudentProgress(models.Model):
@@ -102,6 +169,9 @@ class StudentProgress(models.Model):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, null=True, blank=True)
     completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("student", "quiz")
 
     def __str__(self):
         return f"{self.student.full_name} - {self.lesson or self.quiz} - {'Completed' if self.completed else 'In Progress'}"
