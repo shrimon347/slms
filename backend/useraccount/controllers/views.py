@@ -41,7 +41,7 @@ class UserRegistrationView(APIView):
         user = serializer.save()
         return Response(
             {
-                "success": "User registered successfully. Please verify your email with the OTP sent."
+                "success": "User registered successfully. Please verify your email. An OTP sent your email."
             },
             status=status.HTTP_201_CREATED,
         )
@@ -83,10 +83,12 @@ class UserLoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         user = authenticate(email=email, password=password)
+        user_serializer = UserSerializer(user)
+        user_data = user_serializer.data 
         if user is not None:
             token = get_token_for_user(user)
             return Response(
-                {"token": token, "message": "Login SuccessFull"},
+                {"token": token, "user": user_data, "message": "Login SuccessFull"},
                 status=status.HTTP_200_OK,
             )
         else:
