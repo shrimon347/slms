@@ -4,6 +4,8 @@ import { lazy } from "react";
 import { createBrowserRouter } from "react-router";
 
 const Home = lazy(() => import("../pages/homepage/Home"));
+const Login = lazy(() => import("../pages/login_register_page/Login"));
+const Register = lazy(() => import("../pages/login_register_page/Register")); 
 
 const router = createBrowserRouter([
   {
@@ -13,6 +15,14 @@ const router = createBrowserRouter([
       {
         path: "/",
         element: SuspenseWrapper(Home),
+      },
+      {
+        path: "/login",
+        element: SuspenseWrapper(Login),
+      },
+      {
+        path: "/register",
+        element: SuspenseWrapper(Register),
       },
     ],
   },
