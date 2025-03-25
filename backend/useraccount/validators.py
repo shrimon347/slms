@@ -11,9 +11,9 @@ def validate_full_name(value):
     if not value:
         raise ValidationError("Full Name is required.")
     if (
-        len(value.split()) < 2
+        len(value.split()) < 1
     ):  # Ensure at least two words in the name (e.g., First Name + Last Name)
-        raise ValidationError("Full Name must contain at least two words.")
+        raise ValidationError("Full Name must contain at least One words.")
     if not all(
         word.isalpha() for word in value.split()
     ):  # Ensure each part of the name contains only letters
@@ -82,6 +82,15 @@ def validate_date_of_birth(value):
 def validate_contact_number(value):
     if value and not re.match(r"^\+?[0-9]\d{1,14}$", value):
         raise ValidationError("Enter a valid contact number(0-9).")
+    return value
+
+
+# accept_terms validator
+def accept_terms_check(value):
+    if value not in ["True", "False"]:
+        return ValidationError(
+            "Invalid value for accept_terms, must be 'True' or 'False'."
+        )
     return value
 
 

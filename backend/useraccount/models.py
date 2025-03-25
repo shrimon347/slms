@@ -70,6 +70,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         validators=[validate_profile_picture],
     )
+    accept_terms = models.BooleanField(default=False, validators=[accept_terms_check])
     otp = models.CharField(
         max_length=6, blank=True, null=True
     )  # OTP for email verification

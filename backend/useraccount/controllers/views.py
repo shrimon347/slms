@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 from useraccount.models import User
 from useraccount.permissions import IsAdminOrStaff
 from useraccount.renderers import UserRenderer
@@ -31,6 +32,34 @@ def get_token_for_user(user):
     }
 
 
+class CustomTokenRefreshView(TokenRefreshView):
+    """
+    fro refresh token
+    """
+
+    renderer_classes = [UserRenderer]
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.data.get("refresh")
+
+        if not refresh_token:
+            return Response(
+                {"error": "Refresh token is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        response = super().post(request, *args, **kwargs)
+
+        return Response(
+            {
+                "message": "Token refreshed successfully",
+                "access": response.data.get("access"),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class UserRegistrationView(APIView):
     renderer_classes = [UserRenderer]
     permission_classes = [AllowAny]
@@ -48,6 +77,7 @@ class UserRegistrationView(APIView):
 
 
 class UserVerifyOTPView(APIView):
+    renderer_classes = [UserRenderer]
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -84,7 +114,7 @@ class UserLoginView(APIView):
             )
         user = authenticate(email=email, password=password)
         user_serializer = UserSerializer(user)
-        user_data = user_serializer.data 
+        user_data = user_serializer.data
         if user is not None:
             token = get_token_for_user(user)
             return Response(
@@ -180,6 +210,7 @@ class UserPasswordResetView(APIView):
 
 
 class UserListView(APIView):
+    renderer_classes = [UserRenderer]
     permission_classes = [IsAuthenticated, IsAdminOrStaff]
 
     def get(self, request):

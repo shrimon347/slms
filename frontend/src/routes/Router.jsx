@@ -5,7 +5,8 @@ import { createBrowserRouter } from "react-router";
 
 const Home = lazy(() => import("../pages/homepage/Home"));
 const Login = lazy(() => import("../pages/login_register_page/Login"));
-const Register = lazy(() => import("../pages/login_register_page/Register")); 
+const Register = lazy(() => import("../pages/login_register_page/Register"));
+const VerifyEmail = lazy(() => import("../pages/login_register_page/VerifyEmail")); 
 
 const router = createBrowserRouter([
   {
@@ -23,6 +24,10 @@ const router = createBrowserRouter([
       {
         path: "/register",
         element: SuspenseWrapper(Register),
+      },
+      {
+        path: "/verify-email",
+        element: SuspenseWrapper(VerifyEmail),
       },
     ],
   },

@@ -29,6 +29,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserRegistrationSerializer(serializers.ModelSerializer):
     # We are writing this becoz we need confirm password field in our Registratin Request
     password2 = serializers.CharField(style={"input_type": "password"}, write_only=True)
+    accept_terms = serializers.BooleanField()
 
     class Meta:
         model = User
@@ -40,6 +41,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "date_of_birth",
             "contact_number",
             "profile_picture",
+            "accept_terms",
         ]
         extra_kwargs = {
             "password": {"write_only": True},
@@ -50,6 +52,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         password = attrs.get("password")
         password2 = attrs.get("password2")
         contact_number = attrs.get("contact_number")
+        accept_terms = attrs.get("accept_terms")
+
+        if not accept_terms:
+            raise serializers.ValidationError(
+                {"accept_terms": "You must accepted the terms & conditions"}
+            )
 
         if password and password2 and password != password2:
             raise serializers.ValidationError(
