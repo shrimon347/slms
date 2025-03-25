@@ -6,7 +6,10 @@ import { clearAuthData } from "../utils/localStorage";
 const useAuth = () => {
   const dispatch = useDispatch();
   const { user, accessToken } = useSelector((state) => state.auth);
-  const [logout] = useLogoutMutation();
+  const [logout, { isLoading }] = useLogoutMutation();
+
+  // Check if the user is authenticated
+  const isAuthenticated = Boolean(user && accessToken);
 
   const handleLogout = async () => {
     try {
@@ -18,7 +21,7 @@ const useAuth = () => {
     }
   };
 
-  return { user, accessToken, handleLogout };
+  return { user, accessToken, isAuthenticated, handleLogout, isLoading };
 };
 
 export default useAuth;

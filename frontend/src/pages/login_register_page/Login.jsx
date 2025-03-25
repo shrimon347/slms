@@ -34,7 +34,11 @@ const Login = () => {
     try {
       // Call the login API with the credentials
       const response = await login(data).unwrap();
-      const { user, access, refresh } = response;
+      console.log(response);
+      
+      const { user,token } = response;
+      const access = token.access
+      const refresh = token.refresh
 
       // Dispatch the action to set user credentials in Redux
       dispatch(setUserCredentials({ user, access, refresh }));
