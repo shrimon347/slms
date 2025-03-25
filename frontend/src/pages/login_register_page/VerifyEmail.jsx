@@ -13,7 +13,10 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { useVerifyEmailMutation } from "@/features/auth/authApi";
+import {
+  useResendOtpMutation,
+  useVerifyEmailMutation,
+} from "@/features/auth/authApi";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router";
@@ -31,6 +34,7 @@ const VerifyEmail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [verifyEmail, { isLoading }] = useVerifyEmailMutation();
+  const [resendOtp] = useResendOtpMutation();
   const form = useForm({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -70,6 +74,42 @@ const VerifyEmail = () => {
       toast.error(
         error?.data?.errors?.non_field_errors[0] ||
           "Failed to verify email. Please try again."
+      );
+    }
+  };
+  // Handle Resend OTP
+  const handleResendOtp = async () => {
+    try {
+      // Extract the email from state
+      const email = location.state?.email;
+
+      if (!email) {
+        throw new Error("Email not found. Please try again.");
+      }
+
+      // Prepare the payload for the backend
+      const resendData = {
+        email: email,
+      };
+
+      // Call the backend API to resend the OTP
+      await resendOtp(resendData).unwrap();
+
+      toast.promise(
+        resendOtp(resendData).unwrap(), // Promise returned by resendOtp
+        {
+          loading: "Sending OTP...", // Loading state
+          success: "OTP resent successfully!", // Success state
+          error: (error) =>
+            error?.data?.message || "Failed to resend OTP. Please try again.", // Error state
+        }
+      );
+    } catch (error) {
+      console.error("Resend OTP error:", error);
+
+      // Show error notification
+      toast.error(
+        error?.data?.message || "Failed to resend OTP. Please try again."
       );
     }
   };
@@ -132,8 +172,8 @@ const VerifyEmail = () => {
           Didn't receive the OTP?{" "}
           <Button
             variant="link"
-            className="text-primary hover:underline p-0 h-auto"
-            onClick={() => toast.info("OTP resent successfully!")}
+            className="text-primary hover:underline p-0 h-auto cursor-pointer"
+            onClick={handleResendOtp}
           >
             Resend OTP
           </Button>
