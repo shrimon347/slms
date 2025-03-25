@@ -1,8 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useLoginMutation } from "@/features/auth/authApi";
+import { setUserCredentials } from "@/features/auth/authSlice";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router";
+import { useDispatch } from "react-redux";
+import { Link, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { z } from "zod";
 
 // Define the schema for login validation
@@ -12,6 +16,11 @@ const schema = z.object({
 });
 
 const Login = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [login, { isLoading }] = useLoginMutation(); // Mutation hook for login
+
+  // React Hook Form setup
   const {
     register,
     handleSubmit,
@@ -20,10 +29,25 @@ const Login = () => {
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = (data) => {
-    // Simulate a login
-    console.log("Login data:", data);
-    // You can add login functionality here (e.g., call an API)
+  // Handle form submission
+  const onSubmit = async (data) => {
+    try {
+      // Call the login API with the credentials
+      const response = await login(data).unwrap();
+      const { user, access, refresh } = response;
+
+      // Dispatch the action to set user credentials in Redux
+      dispatch(setUserCredentials({ user, access, refresh }));
+
+      // Show success notification
+      toast.success("Login successful!");
+
+      // Redirect to the dashboard
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error(error?.data?.message || "Failed to login. Please try again.");
+    }
   };
 
   return (
@@ -57,16 +81,16 @@ const Login = () => {
           )}
 
           {/* Submit button */}
-          <Button type="submit" className="w-full">
-            Login
+          <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
+            {isLoading ? "Logging in..." : "Login"}
           </Button>
         </form>
 
-        {/* You can add a register link or any additional action */}
+        {/* Register link */}
         <div className="text-center mt-4">
           <p className="text-sm text-gray-600">
             Don't have an account?{" "}
-            <Link to={"/register"} className="text-blue-500 hover:underline">
+            <Link to="/register" className="text-blue-500 hover:underline">
               Register
             </Link>
           </p>
