@@ -41,7 +41,7 @@ class EnrollmentRepository:
     @staticmethod
     def get_active_enrollments(student):
         """Fetch only active enrollments"""
-        return Enrollment.objects.filter(student=student, status="active")
+        return Enrollment.objects.filter(student=student)
 
     @staticmethod
     def get_enrollments_by_course(course):
