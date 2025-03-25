@@ -125,6 +125,38 @@ class UserOtpVerifySerializer(serializers.Serializer):
         return data
 
 
+class ResendOtpSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=255)
+
+    def validate(self, data):
+        try:
+            user = UserService.get_user_by_email(email=data["email"])
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found.")
+
+        if user.is_verified:
+            raise serializers.ValidationError("User is already verified.")
+        return data
+
+    def resend_otp(self, validated_data):
+        try:
+            user = UserService.get_user_by_email(email=validated_data["email"])
+            new_otp = str(random.randint(100000, 999999))
+
+            user.otp = new_otp
+            user.save()
+            body = f"Your OTP for email verification is {new_otp}"
+            data = {
+                "subject": "Verify Your Email",
+                "body": body,
+                "to_email": user.email,
+            }
+            Util.send_email(data)
+            return user
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found.")
+
+
 class UserLoginSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255)
 

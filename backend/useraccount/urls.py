@@ -2,6 +2,7 @@ from django.urls import path
 
 from .controllers.views import (
     CustomTokenRefreshView,
+    ResendOtpView,
     SendPasswordResetEmailView,
     UserChangePasswordView,
     UserListView,
@@ -17,6 +18,7 @@ urlpatterns = [
     path("login/", UserLoginView.as_view(), name="login"),
     path("token/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
     path("verify-email/", UserVerifyOTPView.as_view(), name="verify-email"),
+    path("resend-otp/", ResendOtpView.as_view(), name="resend-otp"),
     path("profile/", UserProfileView.as_view(), name="profile"),
     path("changepassword/", UserChangePasswordView.as_view(), name="changepassword"),
     path(

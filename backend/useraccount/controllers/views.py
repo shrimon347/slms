@@ -1,6 +1,6 @@
 from django.contrib.auth import authenticate
 from django.forms import ValidationError
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,6 +10,7 @@ from useraccount.models import User
 from useraccount.permissions import IsAdminOrStaff
 from useraccount.renderers import UserRenderer
 from useraccount.serializers import (
+    ResendOtpSerializer,
     SendPasswordResetEmailSerializer,
     UserChangePasswordSerializer,
     UserLoginSerializer,
@@ -74,6 +75,29 @@ class UserRegistrationView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class ResendOtpView(APIView):
+    """
+    view to hand otp resend requests
+    """
+
+    renderer_classes = [UserRenderer]
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResendOtpSerializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+
+            serializer.resend_otp(serializer.validated_data)
+            return Response(
+                {"message": "OTP resent successfully."}, status=status.HTTP_200_OK
+            )
+        except serializers.ValidationError as e:
+            return Response(
+                {"error": str(e.detail[0])}, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class UserVerifyOTPView(APIView):
