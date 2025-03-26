@@ -1,6 +1,7 @@
 from course.models import Lesson, MCQQuestion, Module, Option, Quiz
 from course.renderers import CourseRenderer
 from course.serializers import (
+    CourseCategorySerializer,
     CourseCreateUpdateSerializer,
     CourseDetailSerializer,
     CourseEnrollmentSerializer,
@@ -8,6 +9,7 @@ from course.serializers import (
     MCQQuestionSerializer,
     QuizSerializer,
 )
+from course.services.course_category_service import CourseCategoryService
 from course.services.course_service import CourseService
 from course.services.lesson_service import LessonService
 from course.services.quiz_service import QuizService
@@ -23,6 +25,25 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from useraccount.permissions import IsAdminOrStaff, IsStudent
 from useraccount.renderers import UserRenderer
+
+
+class CourseCategoryListView(APIView):
+    """
+    category list view
+    """
+
+    renderer_classes = [UserRenderer]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        allCategory = CourseCategoryService.get_all_categories()
+        if not allCategory:
+            return Response(
+                {"error": "Course Category not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = CourseCategorySerializer(allCategory, many=True)
+        category = serializer.data
+        return Response({"category": category}, status=status.HTTP_200_OK)
 
 
 class CourseCreateUpdateAPIView(APIView):

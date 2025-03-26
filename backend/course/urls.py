@@ -1,6 +1,7 @@
 from course.controllers.views import (
     CompleteLessonAPIView,
     CompleteQuizAPIView,
+    CourseCategoryListView,
     CourseCreateUpdateAPIView,
     CourseDetailView,
     CourseEnrollmentModuleLessonView,
@@ -17,8 +18,9 @@ from django.urls import path
 urlpatterns = [
     #for courses
     path("", CourseListView.as_view(), name="course-list"),
+    path("category/",CourseCategoryListView.as_view(), name="course-category"),
     path("create/", CourseCreateUpdateAPIView.as_view(), name="course-create"),
-     path("update/<int:course_id>/", CourseCreateUpdateAPIView.as_view(), name="update-course"),
+    path("update/<int:course_id>/", CourseCreateUpdateAPIView.as_view(), name="update-course"),
     path("delete/<int:course_id>/", CourseCreateUpdateAPIView.as_view(), name="delete-course"),
     path("<slug:slug>/", CourseDetailView.as_view(), name="course-detail"),
 
