@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { LayoutDashboard, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink } from "react-router";
+import AvatarDropDown from "./AvatarDropDown";
+import useAuth from "@/hooks/useAuth";
+
 
 const navItems = [
   { name: "Home", path: "/" },
@@ -28,46 +31,47 @@ const NavItem = ({ name, path, closeMenu }) => (
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
-
-  const closeMenu = () => {
-    setIsOpen(false);
-  };
+  const toggleMenu = () => setIsOpen(!isOpen);
+  const closeMenu = () => setIsOpen(false);
 
   return (
-    <div className=" shadow-md bg-white z-50">
-      <nav className=" max-w-7xl mx-auto ">
+    <div className="shadow-md bg-white z-50">
+      <nav className="max-w-7xl mx-auto">
         <div className="container mx-auto flex justify-between items-center p-4">
           <div className="text-xl font-bold">Brand</div>
+
+          {/* Desktop Navigation */}
           <div className="hidden md:flex space-x-6">
             {navItems.map(({ name, path }) => (
-              <NavItem
-                key={name}
-                name={name}
-                path={path}
-                closeMenu={closeMenu}
-              />
+              <NavItem key={name} name={name} path={path} closeMenu={closeMenu} />
             ))}
           </div>
-          <Link to={"login"}>
-            <Button className="hidden md:block cursor-pointer">
-              Login / Signup
-            </Button>
-          </Link>
-          <div className="md:hidden flex items-center">
-            <Link to={"login"}>
-              <Button className="mr-4 cursor-pointer">Login / Signup</Button>
-            </Link>
-            <Menu size={24} onClick={toggleMenu} className="cursor-pointer" />
+
+          {/* Right-side controls */}
+          <div className="flex items-center gap-4">
+            {isAuthenticated ? (
+              <>
+                <NavLink to="/dashboard/my-courses">
+                  <Button variant="outline" className="cursor-pointer">Dashboard <LayoutDashboard /> </Button>
+                </NavLink>
+                <AvatarDropDown />
+              </>
+            ) : (
+              <Link to="/login">
+                <Button className="hidden md:block">Login / Signup</Button>
+              </Link>
+            )}
+
+            {/* Mobile Menu Button */}
+            <Menu size={24} onClick={toggleMenu} className="cursor-pointer md:hidden" />
           </div>
         </div>
 
         {/* Mobile Menu */}
         <div
-          className={`fixed top-0 right-0 h-full bg-white shadow-lg w-64 transform ${
+          className={`fixed top-0 right-0 h-full bg-white shadow-lg w-64 z-50 transform ${
             isOpen ? "translate-x-0" : "translate-x-full"
           } transition-transform duration-300 ease-in-out`}
         >
@@ -76,13 +80,21 @@ const Navbar = () => {
           </div>
           <div className="flex flex-col space-y-6 p-6">
             {navItems.map(({ name, path }) => (
-              <NavItem
-                key={name}
-                name={name}
-                path={path}
-                closeMenu={closeMenu}
-              />
+              <NavItem key={name} name={name} path={path} closeMenu={closeMenu} />
             ))}
+
+            {isAuthenticated ? (
+              <>
+                <NavLink to="/dashboard" onClick={closeMenu}>
+                  <Button variant="outline" className="w-full">Dashboard</Button>
+                </NavLink>
+                <AvatarDropDown />
+              </>
+            ) : (
+              <Link to="/login" onClick={closeMenu}>
+                <Button className="w-full">Login / Signup</Button>
+              </Link>
+            )}
           </div>
         </div>
       </nav>

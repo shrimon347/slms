@@ -4,22 +4,22 @@ const roleBasedNavItems = {
     student: [
       {
         title: "My Courses",
-        url: "/student/courses",
+        url: "my-courses",
         icon: BookOpen,
       },
       {
         title: "Resources",
-        url: "/student/resources",
+        url: "student/resources",
         icon: FileText,
       },
       {
         title: "Recordings",
-        url: "/student/recordings",
+        url: "student/recordings",
         icon: Video,
       },
       {
         title: "Join Class",
-        url: "/student/join-class",
+        url: "student/join-class",
         icon: Users,
       },
     ],

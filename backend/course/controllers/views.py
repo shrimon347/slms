@@ -161,7 +161,7 @@ class CourseEnrollmentModuleLessonView(APIView):
 
         # Serialize the course with modules and lessons
         serializer = CourseEnrollmentSerializer(course)
-        return Response({"course-enroll": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"course_enroll": serializer.data}, status=status.HTTP_200_OK)
 
 
 class CompleteLessonAPIView(APIView):

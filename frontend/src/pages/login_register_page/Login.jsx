@@ -47,7 +47,7 @@ const Login = () => {
       toast.success("Login successful!");
 
       // Redirect to the dashboard
-      navigate("/dashboard");
+      navigate("/dashboard/my-courses");
     } catch (error) {
       console.error("Login error:", error);
       toast.error(error?.data?.message || "Failed to login. Please try again.");

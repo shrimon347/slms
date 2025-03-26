@@ -12,6 +12,8 @@ const VerifyEmail = lazy(() =>
   import("../pages/login_register_page/VerifyEmail")
 );
 const Dashboard = lazy(() => import("../pages/dashboard/Dashboard.jsx"));
+const StudentCourses = lazy(()=> import("../pages/dashboard/courses/StudentCourses"))
+const CourseDetails = lazy(()=> import("../pages/dashboard/courses/StudentCourseDetails"))
 
 const router = createBrowserRouter([
   {
@@ -45,8 +47,12 @@ const router = createBrowserRouter([
     ),
     children: [
       {
-        path: "/dashboard",
-        element: SuspenseWrapper(Dashboard),
+        path: "my-courses",
+        element: SuspenseWrapper(StudentCourses),
+      },
+      {
+        path: "my-courses/:courseId",
+        element: SuspenseWrapper(CourseDetails),
       },
     ],
   },
