@@ -6,6 +6,7 @@ from course.serializers import (
     CourseDetailSerializer,
     CourseEnrollmentSerializer,
     CourseListSerializer,
+    EnrollmentModuleLessonSerializer,
     MCQQuestionSerializer,
     QuizSerializer,
 )
@@ -39,7 +40,8 @@ class CourseCategoryListView(APIView):
         allCategory = CourseCategoryService.get_all_categories()
         if not allCategory:
             return Response(
-                {"error": "Course Category not found."}, status=status.HTTP_404_NOT_FOUND
+                {"error": "Course Category not found."},
+                status=status.HTTP_404_NOT_FOUND,
             )
         serializer = CourseCategorySerializer(allCategory, many=True)
         category = serializer.data
@@ -183,6 +185,28 @@ class CourseEnrollmentModuleLessonView(APIView):
         # Serialize the course with modules and lessons
         serializer = CourseEnrollmentSerializer(course)
         return Response({"course_enroll": serializer.data}, status=status.HTTP_200_OK)
+
+
+class EnrollmentCourseLessonView(APIView):
+    """
+    Enrollemnt course all module and lesson without quiz
+    """
+
+    permission_classes = [IsAuthenticated, IsStudent]
+    renderer_classes = [UserRenderer]
+
+    def get(self, request, enrollment_id):
+        enrollment = EnrollmentService.get_enrollment_details(enrollment_id)
+
+        if not enrollment:
+            return Response(
+                {"error": "Enrollment not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        course = enrollment.course
+        modules = course.modules.prefetch_related("lessons").all()
+        serializer = EnrollmentModuleLessonSerializer(modules, many=True)
+        return Response({"modules": serializer.data}, status=status.HTTP_200_OK)
 
 
 class CompleteLessonAPIView(APIView):
@@ -412,18 +436,28 @@ class QuizListAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class QuizRetrieveAPIView(APIView):
+class EnrolledCourseQuizView(APIView):
+    renderer_classes = [UserRenderer]
+    permission_classes = [IsAuthenticated, IsStudent]  # Ensure the user is authenticated
 
-    def get(self, request, quiz_id):
+    def get(self, request, enrollment_id):
+        """Get quizzes for a course in which the user is enrolled."""
         try:
-            quiz = Quiz.objects.get(id=quiz_id)
-        except Quiz.DoesNotExist:
-            return Response(
-                {"detail": "Quiz not found."}, status=status.HTTP_404_NOT_FOUND
+            # Fetch quizzes using the service layer
+            quizzes = QuizService.get_quizzes_for_enrolled_course(
+                enrollment_id, request.user
             )
 
-        serializer = QuizSerializer(quiz)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            # Serialize the quizzes
+            serializer = QuizSerializer(quizzes, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response(
+                {"error": "An unexpected error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class QuizUpdateAPIView(APIView):

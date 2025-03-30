@@ -49,13 +49,18 @@ class LessonSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         return lesson_service().update_lesson(instance.id, **validated_data)
 
+class QuizSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Quiz
+        fields = ["id", "title", "total_questions", "passing_score", "time_limit"]
 
 class ModuleSerializer(serializers.ModelSerializer):
     lessons = serializers.SerializerMethodField()  # Lazy load only related lessons
+    quiz = QuizSerializer(read_only=True)
 
     class Meta:
         model = Module
-        fields = ["id", "title", "description", "order", "lessons"]
+        fields = ["id", "title", "description", "order", "lessons", "quiz"]
 
     def get_lessons(self, obj):
         """Return only related lessons for this module"""
@@ -211,6 +216,18 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
         modules = course.modules.prefetch_related("lessons").all()
         return ModuleSerializer(modules, many=True).data
 
+class EnrollmentModuleLessonSerializer(serializers.ModelSerializer):
+    lessons = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Module
+        fields = ["id", "title", "lessons"]  # Include only module ID, title, and lessons
+
+    def get_lessons(self, module):
+        """Return only the lessons related to this module."""
+        lessons = module.lessons.all().order_by("order")  # Fetch lessons in order
+        return LessonSerializer(lessons, many=True).data
+
 
 class CourseProgressSerializer(serializers.ModelSerializer):
     lesson_id = serializers.CharField(source="lesson.id", read_only=True)
@@ -228,7 +245,7 @@ class OptionSerializer(serializers.ModelSerializer):
 
 
 class MCQQuestionSerializer(serializers.ModelSerializer):
-    options = OptionSerializer(many=True)
+    options = OptionSerializer(many=True, read_only=True)
 
     class Meta:
         model = MCQQuestion
@@ -236,15 +253,14 @@ class MCQQuestionSerializer(serializers.ModelSerializer):
 
 
 class QuizSerializer(serializers.ModelSerializer):
+    questions = serializers.SerializerMethodField()
+
     class Meta:
         model = Quiz
-        fields = [
-            "id",
-            "module",
-            "title",
-            "total_questions",
-            "passing_score",
-            "time_limit",
-        ]
+        fields = ["id", "title", "total_questions", "passing_score", "time_limit", "questions"]
 
+    def get_questions(self, quiz):
+        """Return all questions with their options."""
+        questions = quiz.questions.prefetch_related("options").all()
+        return MCQQuestionSerializer(questions, many=True).data
 

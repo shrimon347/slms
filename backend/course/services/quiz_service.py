@@ -1,4 +1,5 @@
 from course.repositories.quiz_repository import QuizRepository
+from payment.models import Enrollment
 
 
 class QuizService:
@@ -11,6 +12,30 @@ class QuizService:
     def get_quiz_by_id(quiz_id: int):
         """Get a quiz by its ID."""
         return QuizRepository.get_quiz_by_id(quiz_id)
+
+    @staticmethod
+    def get_quiz_with_details(quiz_id):
+        """Get a quiz with all its questions and options."""
+        return QuizRepository.get_quiz_with_details(quiz_id)
+
+    @staticmethod
+    def get_quizzes_for_enrolled_course(enrollment_id, user):
+        """Get quizzes for a course in which the user is enrolled."""
+        # Fetch the enrollment object
+        enrollment = (
+            Enrollment.objects.filter(id=enrollment_id, student=user)
+            .select_related("course")
+            .first()
+        )
+        if not enrollment:
+            raise ValueError("Enrollment not found or user not authorized.")
+
+        # Fetch the course
+        course = enrollment.course
+
+        # Fetch quizzes for the course
+        quizzes = QuizRepository.get_quizzes_for_course(course)
+        return quizzes
 
     @staticmethod
     def create_quiz(**data):

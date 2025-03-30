@@ -13,6 +13,20 @@ class QuizRepository:
     @staticmethod
     def get_Options_for_question(question):
         return question.Options.all()
+    
+    @staticmethod
+    def get_quiz_with_details(quiz_id):
+        """Fetch a quiz with all its questions and options."""
+        return (
+            Quiz.objects.filter(id=quiz_id)
+            .prefetch_related("questions__options")  # Prefetch related questions and options
+            .first()
+        )
+    
+    @staticmethod
+    def get_quizzes_for_course(course):
+        """Fetch all quizzes for a course."""
+        return Quiz.objects.filter(module__course=course).select_related("module").prefetch_related("questions__options")
 
     @staticmethod
     def create_mcq_question(quiz, question_text, correct_option_index):
