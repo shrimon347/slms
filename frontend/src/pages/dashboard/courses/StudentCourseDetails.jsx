@@ -28,6 +28,8 @@ const CourseDetails = () => {
     (total, module) => total + module.lessons.length,
     0
   );
+  console.log(course);
+  
   return (
     <div className="p-4 md:p-14">
       {/* Course Title and Description */}
@@ -82,10 +84,35 @@ const CourseDetails = () => {
                               </p>
                             </div>
                             <div>
-                              <Link className="flex items-center gap-1 bg-zinc-200 hover:bg-zinc-400 hover:text-white p-2 rounded-sm"><CirclePlay className="w-5" /> Class Recording</Link>
+                              <Link
+                                to={`/dashboard/my-courses/${courseId}/recordings?play=${lesson.id}`}
+                                className="flex items-center gap-1 bg-zinc-200 hover:bg-zinc-400 hover:text-white p-2 rounded-sm"
+                              >
+                                <CirclePlay className="w-5" /> Class Recording
+                              </Link>
                             </div>
                           </li>
                         ))}
+                      </ul>
+                      <ul>
+                        <li className="bg-zinc-100 mb-5 border hover:border-black rounded-sm px-4 py-2 flex justify-between items-center">
+                          <div>
+                            <p className="font-bold">{module.quiz.title}</p>
+                            <p className="flex items-center gap-2 py-2 text-red-500">
+                              <Clock3Icon className="w-4" />
+                              {Math.floor(module.quiz.time_limit / 60)} min{" "}
+                              {module.quiz.time_limit % 60} s{" "}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="p-2 text-green-600 font-bold">
+                              Total Questions : {module.quiz.total_questions}{" "}
+                            </p>
+                            <Link className="flex items-center gap-1 bg-zinc-200 hover:bg-zinc-400 hover:text-white p-2 rounded-sm">
+                              <NotepadText className="w-5" /> Take A Quiz
+                            </Link>
+                          </div>
+                        </li>
                       </ul>
                     </div>
                   </AccordionContent>

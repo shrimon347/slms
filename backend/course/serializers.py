@@ -221,7 +221,7 @@ class EnrollmentModuleLessonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Module
-        fields = ["id", "title", "lessons"]  # Include only module ID, title, and lessons
+        fields = ["id", "title", "lessons", "order"]  # Include only module ID, title, and lessons
 
     def get_lessons(self, module):
         """Return only the lessons related to this module."""

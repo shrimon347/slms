@@ -14,6 +14,7 @@ const VerifyEmail = lazy(() =>
 const Dashboard = lazy(() => import("../pages/dashboard/Dashboard.jsx"));
 const StudentCourses = lazy(()=> import("../pages/dashboard/courses/StudentCourses"))
 const CourseDetails = lazy(()=> import("../pages/dashboard/courses/StudentCourseDetails"))
+const CourseModuleLessonVideo = lazy(()=> import("../pages/dashboard/courses/CourseModuleLessonVideo"))
 
 const router = createBrowserRouter([
   {
@@ -53,6 +54,10 @@ const router = createBrowserRouter([
       {
         path: "my-courses/:courseId",
         element: SuspenseWrapper(CourseDetails),
+      },
+      {
+        path: "my-courses/:courseId/recordings",
+        element: SuspenseWrapper(CourseModuleLessonVideo),
       },
     ],
   },
