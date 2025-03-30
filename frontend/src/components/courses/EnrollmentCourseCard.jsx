@@ -19,7 +19,7 @@ const EnrollmentCourseCard = ({ course }) => {
         <img
           src={course?.course_image_url}
           alt={course?.course_title}
-          className="rounded-lg object-cover w-full md:w-[520px] aspect-video"
+          className="rounded-lg object-cover w-full sm:w-[200px] md:w-[400px] aspect-video"
         />
       </CardHeader>
 

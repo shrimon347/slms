@@ -83,18 +83,7 @@ const Navbar = () => {
               <NavItem key={name} name={name} path={path} closeMenu={closeMenu} />
             ))}
 
-            {isAuthenticated ? (
-              <>
-                <NavLink to="/dashboard" onClick={closeMenu}>
-                  <Button variant="outline" className="w-full">Dashboard</Button>
-                </NavLink>
-                <AvatarDropDown />
-              </>
-            ) : (
-              <Link to="/login" onClick={closeMenu}>
-                <Button className="w-full">Login / Signup</Button>
-              </Link>
-            )}
+           
           </div>
         </div>
       </nav>

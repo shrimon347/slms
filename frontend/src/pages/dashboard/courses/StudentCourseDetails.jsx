@@ -56,7 +56,7 @@ const CourseDetails = () => {
                               {totalLessons} Class Recordings
                             </div>
                             <div className="flex items-center gap-2">
-                              <NotepadText /> A quiz
+                              <NotepadText /> 1 Quiz
                             </div>
                           </div>
                         </div>

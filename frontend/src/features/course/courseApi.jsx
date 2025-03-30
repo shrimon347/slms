@@ -61,11 +61,17 @@ export const courseApi = createApi({
     }),
     getAllCourses: builder.query({
       query: (category) => ({
-        url: `courses/?category=${category}/`,
+        url: `courses/?category=${category}`,
+        method: "GET",
+      }),
+    }),
+    getAllCategory: builder.query({
+      query: () => ({
+        url: `courses/category/`,
         method: "GET",
       }),
     }),
   }),
 });
 
-export const { useGetEnrolledCourseQuery, useLazyGetEnrolledCourseModuleQuery, useLazyGetAllCoursesQuery } = courseApi;
+export const { useGetEnrolledCourseQuery, useLazyGetEnrolledCourseModuleQuery, useLazyGetAllCoursesQuery,useGetAllCategoryQuery } = courseApi;

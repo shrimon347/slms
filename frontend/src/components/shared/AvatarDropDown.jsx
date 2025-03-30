@@ -28,7 +28,6 @@ const AvatarDropDown = () => {
               {user?.full_name?.charAt(0).toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
-          <p>{user?.full_name || "Guest"}</p>
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">
