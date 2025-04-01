@@ -65,6 +65,12 @@ export const courseApi = createApi({
         method: "GET",
       }),
     }),
+    getEnrolledModuleQuizzes: builder.query({
+      query: ({ enrollments_id, module_id }) => ({
+        url: `courses/enrollments/${enrollments_id}/modules/${module_id}/quizzes/`,
+        method: "GET",
+      }),
+    }),
     getAllCourses: builder.query({
       query: (category) => ({
         url: `courses/?category=${category}`,
@@ -80,4 +86,11 @@ export const courseApi = createApi({
   }),
 });
 
-export const { useGetEnrolledCourseQuery, useLazyGetEnrolledCourseModuleQuery, useLazyGetAllCoursesQuery,useGetAllCategoryQuery, useLazyGetEnrolledModuleLessonsQuery } = courseApi;
+export const {
+  useGetEnrolledCourseQuery,
+  useLazyGetEnrolledCourseModuleQuery,
+  useLazyGetAllCoursesQuery,
+  useGetAllCategoryQuery,
+  useLazyGetEnrolledModuleLessonsQuery,
+  useLazyGetEnrolledModuleQuizzesQuery,
+} = courseApi;

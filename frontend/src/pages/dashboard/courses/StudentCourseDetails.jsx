@@ -4,13 +4,28 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useLazyGetEnrolledCourseModuleQuery } from "@/features/course/courseApi";
-import { CirclePlay, Clock3Icon, NotepadText, VideoIcon } from "lucide-react";
-import { useEffect } from "react";
+import {
+  CirclePlay,
+  Clock3Icon,
+  NotepadText,
+  TriangleAlert,
+  VideoIcon,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 
 const CourseDetails = () => {
   const { courseId } = useParams();
+  const [isOpen, setIsOpen] = useState(false);
   const [trigger, { data: courseData, isLoading, isError, error }] =
     useLazyGetEnrolledCourseModuleQuery();
 
@@ -29,7 +44,7 @@ const CourseDetails = () => {
     0
   );
   console.log(course);
-  
+
   return (
     <div className="p-4 md:p-14">
       {/* Course Title and Description */}
@@ -104,13 +119,64 @@ const CourseDetails = () => {
                               {module.quiz.time_limit % 60} s{" "}
                             </p>
                           </div>
+                          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle className="items-center flex flex-col gap-4">
+                                  <TriangleAlert
+                                    size={48}
+                                    className="text-red-500"
+                                  />
+                                  সাবধান!! কুইজ এর নিয়মাবলী জেনে নিই।
+                                </DialogTitle>
+                                <DialogDescription>
+                                  <ul className="list-disc pl-5 mb-4 py-3">
+                                    <li>
+                                      আপনি এই কুইজ আর দেয়ার সুযোগ পাবেন না। তাই,
+                                      আপনার ইন্টারনেট কানেকশন এবং ইলেক্ট্রিসিটি
+                                      ঠিকঠাক আছে কিনা যাচাই করে নিন।
+                                    </li>
+                                    <li>
+                                      কুইজের মাঝখানে কোনো কারনে ডিসকানেক্ট হয়ে
+                                      গেলে আবার লগইন করে কুইজ শুরু করতে পারবেন।
+                                      আপনার টাইম কোনো কারনে লস হলে সেটা আপনাকে
+                                      আর দেয়া হবে না।
+                                    </li>
+                                    <li>
+                                      আপনার ডিভাইসে সমস্যা হলে অন্য ডিভাইস থেকে
+                                      টেস্টে জয়েন করতে পারবেন।
+                                    </li>
+                                    <li>
+                                      আপনি সঠিক সময়ে কুইজ সাবমিট না করতে পারলে
+                                      আপনার কুইজ অটো সাবমিট হয়ে যাবে। আপনি আর এই
+                                      কুইজ দেয়ার সুযোগ পাবেন না।
+                                    </li>
+                                  </ul>
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="flex justify-end">
+                                <Link
+                                  to={`/dashboard/my-courses/${courseId}/modules/${module.id}/quizes/guidelines`}
+                                >
+                                  <Button className="cursor-pointer">
+                                    {" "}
+                                    I Agree, Continue
+                                  </Button>
+                                </Link>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                           <div>
                             <p className="p-2 text-green-600 font-bold">
                               Total Questions : {module.quiz.total_questions}{" "}
                             </p>
-                            <Link className="flex items-center gap-1 bg-zinc-200 hover:bg-zinc-400 hover:text-white p-2 rounded-sm">
+
+                            <Button
+                              onClick={() => setIsOpen(true)}
+                              className="w-full cursor-pointer"
+                            >
                               <NotepadText className="w-5" /> Take A Quiz
-                            </Link>
+                            </Button>
                           </div>
                         </li>
                       </ul>

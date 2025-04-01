@@ -95,7 +95,8 @@ class Quiz(models.Model):
     passing_score = models.PositiveIntegerField()
     time_limit = models.PositiveIntegerField(
         default=10 * 60
-    )  # Time in seconds (10 minutes)
+    )
+    
 
     def __str__(self):
         return self.title

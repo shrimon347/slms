@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CheckCheck } from "lucide-react";
 import { useNavigate } from "react-router";
 
@@ -12,40 +12,44 @@ const EnrollmentCourseCard = ({ course }) => {
 
   return (
     <Card
-      className="bg-zinc-100 text-white rounded-sm  shadow-none cursor-pointer hover:border-black py-3 flex flex-col md:flex-row items-center gap-1"
+      className="relative transition-all duration-200 flex flex-col md:flex-row h-full w-full p-0 md:p-1.5 items-center gap-0 md:gap-2 rounded-lg cursor-pointer border  hover:border-black bg-white shadow-none "
       onClick={handleCardClick}
     >
-      <CardHeader className="px-3">
+      {/* Course Image */}
+      <CardHeader className="p-0">
         <img
           src={course?.course_image_url}
           alt={course?.course_title}
-          className="rounded-lg object-cover w-full sm:w-[200px] md:w-[400px] aspect-video"
+          className="w-full md:w-[175px] lg:w-[140px] xl:w-[175px] 2xl:w-[212px] rounded-lg aspect-video object-cover"
         />
       </CardHeader>
 
-      {/* Text Content */}
-      <CardContent className="w-full">
+      {/* Course Content */}
+      <CardContent className="flex flex-col gap-2 md:gap-1.5 items-start justify-between flex-1 self-stretch px-2 md:px-0 py-1 md:py-0">
         {/* Course Title */}
-        <CardTitle className="text-gray-600 text-sm sm:text-md">
+        <p className=" font-bold text-black">
           {course?.course_title}
-        </CardTitle>
+        </p>
 
         {/* Status & Batch */}
-        <div className="flex flex-wrap gap-2 mt-2">
+        <div className="flex gap-1.5">
           <Badge
-            className="bg-slate-100 flex items-center gap-1"
+            className="flex py-0.5 px-1.5 justify-center items-center gap-1 rounded bg-slate-200"
             variant="secondary"
           >
-            <CheckCheck size={14} /> {course?.status}
+            <CheckCheck size={12} /> {course?.status}
           </Badge>
-          <Badge variant="secondary" className="bg-slate-200">
+          <Badge
+            className="flex py-0.5 px-1.5 justify-center items-center gap-1 rounded bg-slate-200"
+            variant="secondary"
+          >
             Batch {course?.batch}
           </Badge>
         </div>
 
-        {/* Course Progress */}
-        <p className="text-slate-500 py-3 text-xs sm:text-sm font-medium">
-          Progress: {course?.progress}%
+        {/* Progress */}
+        <p className="text-xs sm:text-sm text-ostad-black-40 font-semibold">
+          Progress: {course?.progress} %
         </p>
       </CardContent>
     </Card>

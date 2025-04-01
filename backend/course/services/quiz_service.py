@@ -1,3 +1,4 @@
+from course.models import Module, Quiz
 from course.repositories.quiz_repository import QuizRepository
 from payment.models import Enrollment
 
@@ -19,23 +20,29 @@ class QuizService:
         return QuizRepository.get_quiz_with_details(quiz_id)
 
     @staticmethod
-    def get_quizzes_for_enrolled_course(enrollment_id, user):
-        """Get quizzes for a course in which the user is enrolled."""
-        # Fetch the enrollment object
-        enrollment = (
-            Enrollment.objects.filter(id=enrollment_id, student=user)
-            .select_related("course")
-            .first()
-        )
-        if not enrollment:
-            raise ValueError("Enrollment not found or user not authorized.")
+    def get_quizzes_for_enrolled_course_module(enrollment_id, module_id, user):
+        """
+        Fetch quizzes for a specific module in a course where the user is enrolled.
+        """
+        try:
+            # Ensure the user is enrolled in the course
+            enrollment = Enrollment.objects.get(id=enrollment_id, student=user)
 
-        # Fetch the course
-        course = enrollment.course
+            # Ensure the module belongs to the course
+            module = Module.objects.get(id=module_id, course=enrollment.course)
 
-        # Fetch quizzes for the course
-        quizzes = QuizRepository.get_quizzes_for_course(course)
-        return quizzes
+            # Fetch quizzes associated with the module
+            quizzes = Quiz.objects.filter(module=module)
+            return quizzes
+
+        except Enrollment.DoesNotExist:
+            raise ValueError("You are not enrolled in this course.")
+
+        except Module.DoesNotExist:
+            raise ValueError("The specified module does not exist in this course.")
+
+        except Exception as e:
+            raise e
 
     @staticmethod
     def create_quiz(**data):

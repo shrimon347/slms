@@ -438,19 +438,20 @@ class QuizListAPIView(APIView):
 
 class EnrolledCourseQuizView(APIView):
     renderer_classes = [UserRenderer]
-    permission_classes = [IsAuthenticated, IsStudent]  # Ensure the user is authenticated
+    permission_classes = [IsAuthenticated, IsStudent]
 
-    def get(self, request, enrollment_id):
+    def get(self, request, enrollment_id, module_id):
         """Get quizzes for a course in which the user is enrolled."""
         try:
-            # Fetch quizzes using the service layer
-            quizzes = QuizService.get_quizzes_for_enrolled_course(
-                enrollment_id, request.user
+            # Fetch quizzes for the specific module using the service layer
+            quizzes = QuizService.get_quizzes_for_enrolled_course_module(
+                enrollment_id, module_id, request.user
             )
 
             # Serialize the quizzes
             serializer = QuizSerializer(quizzes, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            quizzes = serializer.data
+            return Response({"quizzes":quizzes}, status=status.HTTP_200_OK)
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:

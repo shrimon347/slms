@@ -14,7 +14,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 
 // Extracted to a separate component file or constants file
 const IFRAME_SANDBOX_ATTRIBUTES =
@@ -23,6 +23,7 @@ const IFRAME_SANDBOX_ATTRIBUTES =
 const CourseModuleLessonVideo = () => {
   const { courseId } = useParams();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const lessonId = searchParams.get("play");
   const iframeRef = useRef(null);
 
@@ -30,7 +31,6 @@ const CourseModuleLessonVideo = () => {
     useLazyGetEnrolledModuleLessonsQuery();
 
   const [currentLesson, setCurrentLesson] = useState(null);
-  const navigate = useNavigate();
 
   const handleBack = () => {
     navigate(-1); // Go back one step in the browser history
@@ -99,9 +99,10 @@ const CourseModuleLessonVideo = () => {
 
   return (
     <div className="p-4 md:p-14">
-      <Link>
-        <Button onClick={handleBack} className="mb-4 cursor-pointer">Back</Button>
-      </Link>
+      <Button onClick={handleBack} className="mb-4 cursor-pointer">
+        Back
+      </Button>
+
       <div className="flex flex-col md:flex-row gap-6">
         {/* Left Side: Video Player */}
         <div className="w-full md:w-2/3">

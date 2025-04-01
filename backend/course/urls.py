@@ -68,9 +68,9 @@ urlpatterns = [
     path("quizzes/create/", QuizCreateAPIView.as_view(), name="quiz-create"),
     path("quizzes/", QuizListAPIView.as_view(), name="quiz-list"),
     path(
-        "enrollments/<uuid:enrollment_id>/quizzes/",
+        "enrollments/<uuid:enrollment_id>/modules/<str:module_id>/quizzes/",
         EnrolledCourseQuizView.as_view(),
-        name="enrolled-course-quizzes",
+        name="enrolled-course-module-quizzes",
     ),
     path(
         "quizzes/<int:quiz_id>/update/", QuizUpdateAPIView.as_view(), name="quiz-update"
