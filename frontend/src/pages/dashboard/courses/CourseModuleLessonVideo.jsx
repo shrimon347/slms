@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { useLazyGetEnrolledModuleLessonsQuery } from "@/features/course/courseApi";
-import { VideoIcon } from "lucide-react";
+import { ArrowLeft, VideoIcon } from "lucide-react";
 import React, {
   useCallback,
   useEffect,
@@ -33,7 +33,7 @@ const CourseModuleLessonVideo = () => {
   const [currentLesson, setCurrentLesson] = useState(null);
 
   const handleBack = () => {
-    navigate(-1); // Go back one step in the browser history
+    navigate(-1); 
   };
 
   // Fetch course data only when courseId changes
@@ -100,7 +100,7 @@ const CourseModuleLessonVideo = () => {
   return (
     <div className="p-4 md:p-14">
       <Button onClick={handleBack} className="mb-4 cursor-pointer">
-        Back
+        <ArrowLeft /> Back
       </Button>
 
       <div className="flex flex-col md:flex-row gap-6">

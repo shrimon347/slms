@@ -1,4 +1,4 @@
-from course.models import Lesson, MCQQuestion, Module, Option, Quiz
+from course.models import Lesson, MCQQuestion, Module, Option, Quiz, QuizResult
 from course.renderers import CourseRenderer
 from course.serializers import (
     CourseCategorySerializer,
@@ -8,6 +8,9 @@ from course.serializers import (
     CourseListSerializer,
     EnrollmentModuleLessonSerializer,
     MCQQuestionSerializer,
+    QuizDetailSerializer,
+    QuizResultSerializer,
+    QuizResultShowSerializer,
     QuizSerializer,
 )
 from course.services.course_category_service import CourseCategoryService
@@ -183,7 +186,7 @@ class CourseEnrollmentModuleLessonView(APIView):
             )
 
         # Serialize the course with modules and lessons
-        serializer = CourseEnrollmentSerializer(course)
+        serializer = CourseEnrollmentSerializer(course, context={"user": request.user})
         return Response({"course_enroll": serializer.data}, status=status.HTTP_200_OK)
 
 
@@ -245,45 +248,6 @@ class CompleteLessonAPIView(APIView):
         except Lesson.DoesNotExist:
             return Response(
                 {"error": "Lesson not found!"}, status=status.HTTP_404_NOT_FOUND
-            )
-
-
-class CompleteQuizAPIView(APIView):
-    """
-    Complete the quiz and update progress.
-    """
-
-    permission_classes = [IsAuthenticated, IsStudent]
-    renderer_classes = [UserRenderer]
-
-    def post(self, request, quiz_id, enrollment_id):
-        try:
-            # Ensure the student is enrolled with the provided enrollment_id
-            if not Enrollment.objects.filter(
-                student=request.user, id=enrollment_id, payment_status="success"
-            ).exists():
-                return Response(
-                    {
-                        "error": "You must be enrolled in the course to complete this quiz."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            # Get the quiz by ID
-            quiz = QuizService.get_quiz_by_id(quiz_id)
-
-            # Mark the quiz as completed
-            StudentProgressService.complete_quiz(request.user, quiz)
-
-            return Response(
-                {
-                    "message": "Quiz completed!",
-                },
-                status=status.HTTP_200_OK,
-            )
-        except Quiz.DoesNotExist:
-            return Response(
-                {"error": "Quiz not found!"}, status=status.HTTP_404_NOT_FOUND
             )
 
 
@@ -424,7 +388,7 @@ class QuizCreateAPIView(APIView):
             time_limit=time_limit,
         )
 
-        serializer = QuizSerializer(quiz)
+        serializer = QuizDetailSerializer(quiz)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -432,7 +396,7 @@ class QuizListAPIView(APIView):
 
     def get(self, request):
         quizzes = Quiz.objects.all()
-        serializer = QuizSerializer(quizzes, many=True)
+        serializer = QuizDetailSerializer(quizzes, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -447,11 +411,13 @@ class EnrolledCourseQuizView(APIView):
             quizzes = QuizService.get_quizzes_for_enrolled_course_module(
                 enrollment_id, module_id, request.user
             )
-
             # Serialize the quizzes
-            serializer = QuizSerializer(quizzes, many=True)
+            serializer = QuizDetailSerializer(
+                quizzes, many=True, context={"user": request.user}
+            )
+
             quizzes = serializer.data
-            return Response({"quizzes":quizzes}, status=status.HTTP_200_OK)
+            return Response({"quizzes": quizzes}, status=status.HTTP_200_OK)
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -477,7 +443,7 @@ class QuizUpdateAPIView(APIView):
         quiz.time_limit = request.data.get("time_limit", quiz.time_limit)
 
         quiz.save()
-        serializer = QuizSerializer(quiz)
+        serializer = QuizDetailSerializer(quiz)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -493,3 +459,79 @@ class QuizDeleteAPIView(APIView):
 
         quiz.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SubmitQuiz(APIView):
+    renderer_classes = [UserRenderer]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+
+        # Validate the incoming data using the serializer
+        serializer = QuizResultSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Extract validated data
+        quiz_id = serializer.validated_data["quiz_id"]
+        selected_options = serializer.validated_data["selected_options"]
+
+        try:
+            # Call the service layer to handle quiz submission
+            result = QuizService.submit_quiz(user, quiz_id, selected_options)
+            # Return the response
+            return Response(
+                {
+                    "success": True,
+                    "message": "Quiz submitted successfully",
+                    "quiz_result_id": result["quiz_result_id"],
+                    "submitted": result["submitted"],
+                },
+                status=status.HTTP_200_OK,
+            )
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class QuizResultDetailView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+        IsStudent,
+    ]  # Ensure only authenticated users can access
+
+    def get(self, request, enrollment_id, module_id, quiz_result_id, *args, **kwargs):
+        """
+        Retrieve a specific QuizResult for the authenticated user.
+        The `enrollment_id` and `module_id` are required to validate permissions.
+        """
+        try:
+            quiz_result = (
+                QuizResult.objects.select_related("quiz")
+                .prefetch_related("quiz__questions__options")
+                .get(
+                    id=quiz_result_id,
+                    student=request.user,
+                    quiz__module_id=module_id,  # Ensure the quiz belongs to the specified module
+                    quiz__module__course__enrollments__id=enrollment_id,  # Ensure the user is enrolled in the course
+                )
+            )
+        except QuizResult.DoesNotExist:
+            raise NotFound(
+                "Quiz result not found or you do not have permission to view it."
+            )
+
+        # Serialize the QuizResult object
+        serializer = QuizResultShowSerializer(
+            quiz_result,
+        )
+
+        # Return the serialized data as a response
+        return Response({"quiz_result": serializer.data}, status=status.HTTP_200_OK)

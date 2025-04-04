@@ -1,4 +1,4 @@
-from course.models import Option, MCQQuestion, Quiz
+from course.models import Option, MCQQuestion, Quiz, QuizResult
 
 
 class QuizRepository:
@@ -13,6 +13,11 @@ class QuizRepository:
     @staticmethod
     def get_Options_for_question(question):
         return question.Options.all()
+    
+    @staticmethod
+    def get_questions_with_options(quiz):
+        """Fetch all questions and their options for a given quiz."""
+        return MCQQuestion.objects.filter(quiz=quiz).prefetch_related("options")
     
     @staticmethod
     def get_quiz_with_details(quiz_id):
@@ -60,3 +65,15 @@ class QuizRepository:
     @staticmethod
     def delete_Option(Option):
         Option.delete()
+
+    @staticmethod
+    def save_quiz_result(student, quiz, selected_options, obtained_marks, total_marks,submitted):
+        """Save the quiz result in the database."""
+        return QuizResult.objects.create(
+            student=student,
+            quiz=quiz,
+            selected_options=selected_options,
+            obtained_marks=obtained_marks,
+            total_marks=total_marks,
+            submitted = submitted
+        )

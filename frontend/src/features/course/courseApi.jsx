@@ -83,6 +83,19 @@ export const courseApi = createApi({
         method: "GET",
       }),
     }),
+    getQuizResult: builder.query({
+      query: ({ enrollments_id, module_id,quiz_result_id }) => ({
+        url: `courses/enrollments/${enrollments_id}/modules/${module_id}/quiz-results/${quiz_result_id}/`,
+        method: "GET",
+      }),
+    }),
+    quizSubmit: builder.mutation({
+      query: (payload) => ({
+        url: `courses/quiz/submit/`,
+        method: "POST",
+        body: payload,
+      }),
+    }),
   }),
 });
 
@@ -93,4 +106,6 @@ export const {
   useGetAllCategoryQuery,
   useLazyGetEnrolledModuleLessonsQuery,
   useLazyGetEnrolledModuleQuizzesQuery,
+  useQuizSubmitMutation,
+  useLazyGetQuizResultQuery,
 } = courseApi;

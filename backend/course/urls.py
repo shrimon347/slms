@@ -1,6 +1,4 @@
 from course.controllers.views import (
-    CompleteLessonAPIView,
-    CompleteQuizAPIView,
     CourseCategoryListView,
     CourseCreateUpdateAPIView,
     CourseDetailView,
@@ -12,7 +10,9 @@ from course.controllers.views import (
     QuizCreateAPIView,
     QuizDeleteAPIView,
     QuizListAPIView,
+    QuizResultDetailView,
     QuizUpdateAPIView,
+    SubmitQuiz,
 )
 from django.urls import path
 
@@ -38,16 +38,7 @@ urlpatterns = [
         CourseEnrollmentModuleLessonView.as_view(),
         name="enrollment-detail",
     ),
-    path(
-        "<uuid:enrollment_id>/module/complete-lesson/<int:lesson_id>/",
-        CompleteLessonAPIView.as_view(),
-        name="complete-lesson",
-    ),
-    path(
-        "<uuid:enrollment_id>/module/complete-quiz/<int:quiz_id>/",
-        CompleteQuizAPIView.as_view(),
-        name="complete-quiz",
-    ),
+
     path(
         "enrollments/<uuid:enrollment_id>/modules/",
         EnrollmentCourseLessonView.as_view(),
@@ -72,10 +63,16 @@ urlpatterns = [
         EnrolledCourseQuizView.as_view(),
         name="enrolled-course-module-quizzes",
     ),
+     path(
+        "enrollments/<uuid:enrollment_id>/modules/<str:module_id>/quiz-results/<str:quiz_result_id>/",
+        QuizResultDetailView.as_view(),
+        name="quiz-result-detail",
+    ),
     path(
         "quizzes/<int:quiz_id>/update/", QuizUpdateAPIView.as_view(), name="quiz-update"
     ),
     path(
         "quizzes/<int:quiz_id>/delete/", QuizDeleteAPIView.as_view(), name="quiz-delete"
     ),
+    path("quiz/submit/", SubmitQuiz.as_view(), name="submit_quiz"),
 ]

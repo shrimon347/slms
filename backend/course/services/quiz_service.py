@@ -1,6 +1,10 @@
-from course.models import Module, Quiz
+from course.models import Module, Quiz, QuizResult, StudentProgress
 from course.repositories.quiz_repository import QuizRepository
+from django.db import transaction
+from django.forms import ValidationError
+from django.utils import timezone
 from payment.models import Enrollment
+from payment.services.enrollment_service import EnrollmentService
 
 
 class QuizService:
@@ -96,3 +100,73 @@ class QuizService:
     @staticmethod
     def delete_Option(Option):
         QuizRepository.delete_Option(Option)
+
+    @staticmethod
+    def submit_quiz(user, quiz_id, selected_options):
+        quiz = QuizRepository.get_quiz_by_id(quiz_id)
+        if not quiz:
+            raise ValidationError("Quiz not found.")
+
+        questions = QuizRepository.get_questions_with_options(quiz)
+        existing_attempt = QuizResult.objects.filter(
+            student=user, quiz=quiz, submitted=True
+        ).exists()
+        if existing_attempt:
+            raise ValidationError("You have already submitted this quiz")
+        obtained_marks = 0
+        total_marks = questions.count()
+        result_data = {}
+
+        for question in questions:
+            selected_option_order = selected_options.get(str(question.id))
+            if selected_option_order is None:
+                result_data[question.id] = {
+                    "is_correct": False,
+                    "correct_option": question.correct_option_index,
+                }
+                continue
+
+            correct_option = question.options.filter(
+                order=selected_option_order, is_correct=True
+            ).first()
+            if correct_option:
+                obtained_marks += 1
+                result_data[question.id] = {
+                    "is_correct": True,
+                    "correct_option": question.correct_option_index,
+                }
+            else:
+                result_data[question.id] = {
+                    "is_correct": False,
+                    "correct_option": question.correct_option_index,
+                }
+
+        with transaction.atomic():
+            quiz_result = QuizRepository.save_quiz_result(
+                student=user,
+                quiz=quiz,
+                selected_options=selected_options,
+                obtained_marks=obtained_marks,
+                total_marks=total_marks,
+                submitted=True,
+            )
+
+            student_progress, created = StudentProgress.objects.get_or_create(
+                student=user,
+                quiz=quiz,
+                defaults={"completed": True, "completed_at": timezone.now()},
+            )
+            if not created:
+                student_progress.completed = True
+                student_progress.completed_at = timezone.now()
+                student_progress.save()
+
+            EnrollmentService.complete_quiz(user, quiz)
+
+        return {
+            "obtained_marks": obtained_marks,
+            "total_marks": total_marks,
+            "result_data": result_data,
+            "quiz_result_id": quiz_result.id,
+            "submitted": quiz_result.submitted,
+        }

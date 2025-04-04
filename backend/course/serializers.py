@@ -3,23 +3,19 @@ import uuid
 from django.forms import ValidationError
 from django.utils.text import slugify
 from rest_framework import serializers
+from useraccount.models import User
 
 from .models import (
-    Option,
     Course,
     CourseCategory,
     Lesson,
     MCQQuestion,
     Module,
+    Option,
     Quiz,
-    StudentProgress,
+    QuizResult,
 )
-from .services import (
-    course_category_service,
-    course_service,
-    lesson_service,
-    module_service,
-)
+from .services import course_category_service, lesson_service, module_service
 
 
 class CourseCategorySerializer(serializers.ModelSerializer):
@@ -49,18 +45,36 @@ class LessonSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         return lesson_service().update_lesson(instance.id, **validated_data)
 
+
+class QuizResultForEnrollment(serializers.ModelSerializer):
+    class Meta:
+        model = QuizResult
+        fields = ["id","obtained_marks", "total_marks", "submitted", "submission_time"]
+
+
 class QuizSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Quiz
         fields = ["id", "title", "total_questions", "passing_score", "time_limit"]
 
+
 class ModuleSerializer(serializers.ModelSerializer):
     lessons = serializers.SerializerMethodField()  # Lazy load only related lessons
     quiz = QuizSerializer(read_only=True)
+    quiz_result = serializers.SerializerMethodField()
 
     class Meta:
         model = Module
-        fields = ["id", "title", "description", "order", "lessons", "quiz"]
+        fields = [
+            "id",
+            "title",
+            "description",
+            "order",
+            "lessons",
+            "quiz",
+            "quiz_result",
+        ]
 
     def get_lessons(self, obj):
         """Return only related lessons for this module"""
@@ -74,6 +88,23 @@ class ModuleSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         return module_service().update_module(instance.id, **validated_data)
+
+    def get_quiz_result(self, module):
+        user_email = self.context.get("user_email")
+        if not user_email:
+            return None  # Return None if no user email is present
+
+        # Fetch the user object from the database using the email
+        try:
+            user = User.objects.get(email=user_email)
+        except User.DoesNotExist:
+            return None  # Return None if the user does not exist
+
+        # Fetch the quiz result for the current user and module's quiz
+        quiz_result = QuizResult.objects.filter(student=user, quiz=module.quiz).first()
+
+        # Serialize the quiz result if it exists, otherwise return None
+        return QuizResultForEnrollment(quiz_result).data if quiz_result else None
 
 
 class ModuleExcludedLessonsSerializer(serializers.ModelSerializer):
@@ -113,12 +144,6 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             "time_remaining",
             "modules",
         ]
-
-
-from django.utils.text import slugify
-from rest_framework import serializers
-
-from .models import Course, CourseCategory
 
 
 class CourseCreateUpdateSerializer(serializers.ModelSerializer):
@@ -212,16 +237,24 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
         fields = ["id", "title", "description", "modules"]
 
     def get_modules(self, course):
-        """Only return modules related to the enrolled student's course"""
+        user = self.context.get("user")
         modules = course.modules.prefetch_related("lessons").all()
-        return ModuleSerializer(modules, many=True).data
+        context = {"user_email": user.email} if user and user.is_authenticated else {}
+        serialized_data = ModuleSerializer(modules, many=True, context=context).data
+        return serialized_data
+
 
 class EnrollmentModuleLessonSerializer(serializers.ModelSerializer):
     lessons = serializers.SerializerMethodField()
 
     class Meta:
         model = Module
-        fields = ["id", "title", "lessons", "order"]  # Include only module ID, title, and lessons
+        fields = [
+            "id",
+            "title",
+            "lessons",
+            "order",
+        ]  # Include only module ID, title, and lessons
 
     def get_lessons(self, module):
         """Return only the lessons related to this module."""
@@ -252,15 +285,88 @@ class MCQQuestionSerializer(serializers.ModelSerializer):
         fields = ["id", "question_text", "correct_option_index", "options"]
 
 
-class QuizSerializer(serializers.ModelSerializer):
+class QuizDetailSerializer(serializers.ModelSerializer):
     questions = serializers.SerializerMethodField()
+    result = serializers.SerializerMethodField()
 
     class Meta:
         model = Quiz
-        fields = ["id", "title", "total_questions", "passing_score", "time_limit", "questions"]
+        fields = [
+            "id",
+            "title",
+            "total_questions",
+            "passing_score",
+            "time_limit",
+            "questions",
+            "result"
+        ]
 
     def get_questions(self, quiz):
         """Return all questions with their options."""
         questions = quiz.questions.prefetch_related("options").all()
         return MCQQuestionSerializer(questions, many=True).data
+    def get_result(self, quiz):
+        """
+        Return the quiz result for the current user if the quiz has been submitted.
+        """
+        user = self.context.get("user")  # Get the current user from the context
+        # print(user)
+        if not user or not user.is_authenticated:
+            return None 
+        try:
+            # Fetch the quiz result for the user and quiz
+            quiz_result = QuizResult.objects.get(
+                student=user, quiz=quiz, submitted=True
+            )
+            return {
+                "quiz_result_id": quiz_result.id,
+                "submitted": quiz_result.submitted,
+            }
+        except QuizResult.DoesNotExist:
+            return None 
 
+
+class QuizResultSerializer(serializers.Serializer):
+    quiz_id = serializers.IntegerField(required=True)
+    selected_options = serializers.DictField(
+        child=serializers.IntegerField(), required=True
+    )
+    id = serializers.IntegerField(read_only=True)
+
+    def validate_quiz_id(self, value):
+        """Ensure the quiz ID exists."""
+        if not Quiz.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Invalid quiz ID.")
+        return value
+
+    def validate_selected_options(self, value):
+        """Ensure selected options are valid."""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Selected options must be a dictionary.")
+
+        # Ensure all question IDs exist in the quiz
+        quiz_id = self.initial_data.get("quiz_id")
+        quiz_questions = MCQQuestion.objects.filter(quiz_id=quiz_id).values_list(
+            "id", flat=True
+        )
+
+        for question_id in value.keys():
+            if int(question_id) not in quiz_questions:
+                raise serializers.ValidationError(f"Invalid question ID: {question_id}")
+
+        return value
+
+
+class QuizResultShowSerializer(serializers.ModelSerializer):
+    quiz = QuizDetailSerializer(read_only=True)  
+
+    class Meta:
+        model = QuizResult
+        fields = [
+            "obtained_marks",
+            "total_marks",
+            "submitted",
+            "submission_time",
+            "selected_options",
+            "quiz",  
+        ]

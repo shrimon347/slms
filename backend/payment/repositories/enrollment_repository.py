@@ -1,6 +1,9 @@
 from django.db import IntegrityError, transaction
+from django.forms import ValidationError
 from django.utils.timezone import now
+from course.models import StudentProgress
 from payment.models import Enrollment
+from django.utils import timezone
 
 
 class EnrollmentRepository:
@@ -116,3 +119,38 @@ class EnrollmentRepository:
             course.save()
 
         return enrollment
+
+    @staticmethod
+    def update_enrollment_progress(course, student):
+
+        
+        enrollment = Enrollment.objects.filter(student=student, course=course).first()
+        if not enrollment:
+            raise ValidationError("Enrollment not found.")
+
+        # Total quizzes across all modules in the course
+        total_quizzes = course.modules.filter(quiz__isnull=False).count()
+
+        # Completed quizzes for the student in this course
+        completed_quizzes = StudentProgress.objects.filter(
+            student=student,
+            quiz__module__course=course,
+            completed=True
+        ).count()
+
+        # Calculate progress percentage
+        progress_percentage = (
+            (completed_quizzes / total_quizzes) * 100 if total_quizzes > 0 else 0
+        )
+
+        # Update Enrollment progress
+        enrollment.progress = int(progress_percentage)
+
+        # Check if all quizzes are completed
+        if progress_percentage == 100:
+            enrollment.status = "completed"
+            enrollment.certificate_issued = True
+            enrollment.completion_date = timezone.now()
+
+        # Save the updated enrollment
+        enrollment.save()

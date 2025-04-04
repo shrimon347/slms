@@ -1,3 +1,4 @@
+from email.policy import default
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import pre_save
@@ -96,7 +97,7 @@ class Quiz(models.Model):
     time_limit = models.PositiveIntegerField(
         default=10 * 60
     )
-    
+
 
     def __str__(self):
         return self.title
@@ -166,7 +167,6 @@ def validate_option_count(sender, instance, **kwargs):
 
 class StudentProgress(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="progress")
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, null=True, blank=True)
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, null=True, blank=True)
     completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(auto_now_add=True)
@@ -176,3 +176,29 @@ class StudentProgress(models.Model):
 
     def __str__(self):
         return f"{self.student.full_name} - {self.lesson or self.quiz} - {'Completed' if self.completed else 'In Progress'}"
+
+class QuizResult(models.Model):
+    student = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="quiz_results"
+    )
+    quiz = models.ForeignKey(
+        Quiz, on_delete=models.CASCADE, related_name="results"
+    )
+    selected_options = models.JSONField()  
+    obtained_marks = models.PositiveIntegerField(default=0)
+    total_marks = models.PositiveIntegerField()
+    submitted = models.BooleanField(default=False)
+    submission_time = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        """
+        Override the save method to automatically set the submission_time
+        when the submitted field is set to True.
+        """
+        if self.submitted and not self.submission_time:
+            self.submission_time = timezone.now()  # Set the current time
+        elif not self.submitted:
+            self.submission_time = None  # Clear the submission time if unsubmitted
+        super().save(*args, **kwargs)
+    def __str__(self):
+        return f"{self.student.full_name} - {self.quiz.title} - {self.obtained_marks}/{self.total_marks}"

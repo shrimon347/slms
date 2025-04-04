@@ -18,6 +18,7 @@ const CourseModuleLessonVideo = lazy(()=> import("../pages/dashboard/courses/Cou
 const QuizzDetails = lazy(()=> import("../pages/dashboard/courses/QuizzDetails"))
 const QuizzGuideline = lazy(()=> import("../pages/dashboard/courses/QuizzGuideline"))
 const QuizResult = lazy(()=> import("../pages/dashboard/courses/QuizResult"))
+const QuizCheckAnswer = lazy(()=> import("../pages/dashboard/courses/QuizCheckAnswer"))
 
 const router = createBrowserRouter([
   {
@@ -73,6 +74,10 @@ const router = createBrowserRouter([
       {
         path: "my-courses/:courseId/modules/:moduleId/quizes/:quizId/result",
         element: SuspenseWrapper(QuizResult),
+      },
+      {
+        path: "my-courses/:courseId/modules/:moduleId/quizes/:quizId/checked/answer",
+        element: SuspenseWrapper(QuizCheckAnswer),
       },
     ],
   },

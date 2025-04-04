@@ -1,6 +1,8 @@
 from course.models import StudentProgress
 from django.db.models import Count, Q
+from django.forms import ValidationError
 from django.utils import timezone
+from payment.models import Enrollment
 
 
 class StudentProgressRepository:
@@ -32,39 +34,4 @@ class StudentProgressRepository:
         instance.completed = completed
         instance.save()
 
-    @staticmethod
-    def update_enrollment_progress(enrollment):
-        """
-        Updates the enrollment progress based on completed lessons and quizzes.
-        """
-
-        course = enrollment.course
-        student = enrollment.student
-
-        total_lessons = course.modules.all().aggregate(total=Count("lessons"))["total"]
-        total_quizzes = course.modules.filter(quiz__isnull=False).count()
-
-        completed_lessons = StudentProgress.objects.filter(
-            student=student, lesson__module__course=course, completed=True
-        ).count()
-        completed_quizzes = StudentProgress.objects.filter(
-            student=student, quiz__module__course=course, completed=True
-        ).count()
-
-        total_items = total_lessons + total_quizzes
-        completed_items = completed_lessons + completed_quizzes
-
-        progress_percentage = (
-            (completed_items / total_items) * 100 if total_items > 0 else 0
-        )
-
-        # Update Enrollment progress
-        enrollment.progress = int(progress_percentage)
-
-        # If fully completed, update status and completion date
-        if progress_percentage == 100:
-            enrollment.status = "completed"
-            enrollment.certificate_issued = True
-            enrollment.completion_date = timezone.now()
-
-        enrollment.save()
+    

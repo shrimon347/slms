@@ -43,7 +43,6 @@ const CourseDetails = () => {
     (total, module) => total + module.lessons.length,
     0
   );
-  console.log(course);
 
   return (
     <div className="p-4 md:p-14">
@@ -55,7 +54,7 @@ const CourseDetails = () => {
       <div className="flex flex-col md:flex-row gap-6">
         {/* Left Column: Modules List */}
         <div className="w-full">
-          <div className="w-full  p-5 border hover:border-black rounded-md overflow-y-auto ">
+          <div className="w-full p-5 border hover:border-black rounded-md overflow-y-auto">
             {course?.modules?.map((module, index) => (
               <Accordion type="single" collapsible key={module.id}>
                 <AccordionItem value={`item-${index + 1}`}>
@@ -129,27 +128,29 @@ const CourseDetails = () => {
                                   />
                                   সাবধান!! কুইজ এর নিয়মাবলী জেনে নিই।
                                 </DialogTitle>
-                                <DialogDescription>
+                                <DialogDescription asChild>
+                                  {/* Removed <p> and directly used <ul> */}
                                   <ul className="list-disc pl-5 mb-4 py-3">
                                     <li>
-                                      আপনি এই কুইজ আর দেয়ার সুযোগ পাবেন না। তাই,
-                                      আপনার ইন্টারনেট কানেকশন এবং ইলেক্ট্রিসিটি
-                                      ঠিকঠাক আছে কিনা যাচাই করে নিন।
+                                      আপনি এই কুইজ আর দেয়ার সুযোগ পাবেন না।
+                                      তাই, আপনার ইন্টারনেট কানেকশন এবং
+                                      ইলেক্ট্রিসিটি ঠিকঠাক আছে কিনা যাচাই করে
+                                      নিন।
                                     </li>
                                     <li>
-                                      কুইজের মাঝখানে কোনো কারনে ডিসকানেক্ট হয়ে
+                                      কুইজের মাঝখানে কোনো কারনে ডিসকানেক্ট হয়ে
                                       গেলে আবার লগইন করে কুইজ শুরু করতে পারবেন।
                                       আপনার টাইম কোনো কারনে লস হলে সেটা আপনাকে
-                                      আর দেয়া হবে না।
+                                      আর দেয়া হবে না।
                                     </li>
                                     <li>
                                       আপনার ডিভাইসে সমস্যা হলে অন্য ডিভাইস থেকে
-                                      টেস্টে জয়েন করতে পারবেন।
+                                      টেস্টে জয়েন করতে পারবেন।
                                     </li>
                                     <li>
-                                      আপনি সঠিক সময়ে কুইজ সাবমিট না করতে পারলে
-                                      আপনার কুইজ অটো সাবমিট হয়ে যাবে। আপনি আর এই
-                                      কুইজ দেয়ার সুযোগ পাবেন না।
+                                      আপনি সঠিক সময়ে কুইজ সাবমিট না করতে পারলে
+                                      আপনার কুইজ অটো সাবমিট হয়ে যাবে। আপনি আর
+                                      এই কুইজ দেয়ার সুযোগ পাবেন না।
                                     </li>
                                   </ul>
                                 </DialogDescription>
@@ -167,16 +168,36 @@ const CourseDetails = () => {
                             </DialogContent>
                           </Dialog>
                           <div>
-                            <p className="p-2 text-green-600 font-bold">
-                              Total Questions : {module.quiz.total_questions}{" "}
-                            </p>
+                            {/* Conditionally display total marks or obtained marks / total marks */}
+                            {module?.quiz_result &&
+                            module?.quiz_result?.submitted ? (
+                              <p className="p-2 text-green-600 font-bold">
+                                Marks Obtained:{" "}
+                                {module?.quiz_result.obtained_marks} /{" "}
+                                {module?.quiz_result.total_marks}
+                              </p>
+                            ) : (
+                              <p className="p-2 text-green-600 font-bold">
+                                Total Questions: {module.quiz.total_questions}
+                              </p>
+                            )}
 
-                            <Button
-                              onClick={() => setIsOpen(true)}
-                              className="w-full cursor-pointer"
-                            >
-                              <NotepadText className="w-5" /> Take A Quiz
-                            </Button>
+                            {/* Conditionally render the button */}
+                            {module?.quiz_result &&
+                            module?.quiz_result.submitted ? (
+                              <Link to={`/dashboard/my-courses/${courseId}/modules/${module.id}/quizes/${module.quiz_result.id}/result`}>
+                                <Button className="w-full cursor-pointer">
+                                  <NotepadText className="w-5" /> View Result
+                                </Button>
+                              </Link>
+                            ) : (
+                              <Button
+                                onClick={() => setIsOpen(true)}
+                                className="w-full cursor-pointer"
+                              >
+                                <NotepadText className="w-5" /> Take A Quiz
+                              </Button>
+                            )}
                           </div>
                         </li>
                       </ul>

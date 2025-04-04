@@ -6,6 +6,7 @@ from course.models import (
     Module,
     Option,
     Quiz,
+    QuizResult,
     StudentProgress,
 )
 from django.contrib import admin
@@ -19,3 +20,4 @@ admin.site.register(Quiz)
 admin.site.register(StudentProgress)
 admin.site.register(MCQQuestion)
 admin.site.register(Option)
+admin.site.register(QuizResult)
