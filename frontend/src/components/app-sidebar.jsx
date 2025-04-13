@@ -1,4 +1,3 @@
-
 import { NavMain } from "@/components/nav-main";
 
 import {
@@ -6,10 +5,10 @@ import {
   SidebarContent,
   SidebarHeader,
   SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
-import roleBasedNavItems from "./shared/MenuItems";
 import useAuth from "@/hooks/useAuth";
-
+import roleBasedNavItems from "./shared/MenuItems";
 
 export function AppSidebar({ ...props }) {
   const { user } = useAuth();
@@ -24,6 +23,9 @@ export function AppSidebar({ ...props }) {
   }
   return (
     <Sidebar collapsible="icon" {...props}>
+      <div className="flex justify-end md:hidden">
+        <SidebarTrigger />
+      </div>
       <SidebarHeader>
         <h2>Shiko</h2>
       </SidebarHeader>

@@ -1,13 +1,18 @@
-import uuid
-
+from datetime import datetime, timedelta
+import pytz 
 from django.forms import ValidationError
 from django.utils.text import slugify
 from rest_framework import serializers
+from useraccount.serializers import InstructorSerializer
 from useraccount.models import User
 
 from .models import (
+    Bannerdata,
+    ClassRecording,
+    ClassResource,
     Course,
     CourseCategory,
+    CourseClass,
     Lesson,
     MCQQuestion,
     Module,
@@ -49,7 +54,7 @@ class LessonSerializer(serializers.ModelSerializer):
 class QuizResultForEnrollment(serializers.ModelSerializer):
     class Meta:
         model = QuizResult
-        fields = ["id","obtained_marks", "total_marks", "submitted", "submission_time"]
+        fields = ["id", "obtained_marks", "total_marks", "submitted", "submission_time"]
 
 
 class QuizSerializer(serializers.ModelSerializer):
@@ -118,16 +123,17 @@ class ModuleExcludedLessonsSerializer(serializers.ModelSerializer):
 class CourseDetailSerializer(serializers.ModelSerializer):
     """Serializer for Course with related data"""
 
-    category = serializers.CharField(
-        source="category.name"
-    )  # Get category name instead of ID
+    category = serializers.CharField(source="category.name")
     modules = ModuleExcludedLessonsSerializer(many=True, read_only=True)
+    enrollment_status = serializers.SerializerMethodField()
+    instructors = InstructorSerializer(many=True)
 
     class Meta:
         model = Course
         fields = [
             "id",
             "category",
+            "instructors",
             "title",
             "description",
             "course_image_url",
@@ -143,7 +149,17 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             "updated_at",
             "time_remaining",
             "modules",
+            "enrollment_status",  # Include enrollment status
         ]
+
+    def get_enrollment_status(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return None
+
+        enrollment = obj.enrollments.filter(student=request.user).first()
+        print(enrollment)
+        return enrollment.payment_status if enrollment else None
 
 
 class CourseCreateUpdateSerializer(serializers.ModelSerializer):
@@ -231,10 +247,19 @@ class CourseListSerializer(serializers.ModelSerializer):
 
 class CourseEnrollmentSerializer(serializers.ModelSerializer):
     modules = serializers.SerializerMethodField()
+    certificate_issued = serializers.SerializerMethodField()
+    enrollment_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
-        fields = ["id", "title", "description", "modules"]
+        fields = [
+            "id",
+            "title",
+            "description",
+            "modules",
+            "certificate_issued",
+            "enrollment_id",
+        ]
 
     def get_modules(self, course):
         user = self.context.get("user")
@@ -242,6 +267,20 @@ class CourseEnrollmentSerializer(serializers.ModelSerializer):
         context = {"user_email": user.email} if user and user.is_authenticated else {}
         serialized_data = ModuleSerializer(modules, many=True, context=context).data
         return serialized_data
+
+    def get_certificate_issued(self, course):
+        user = self.context.get("user")
+        if not user or not user.is_authenticated:
+            return False
+        enrollment = course.enrollments.filter(student=user).first()
+        return enrollment.certificate_issued if enrollment else False
+
+    def get_enrollment_id(self, course):
+        user = self.context.get("user")
+        if not user or not user.is_authenticated:
+            return None
+        enrollment = course.enrollments.filter(student=user).first()
+        return str(enrollment.id) if enrollment else None
 
 
 class EnrollmentModuleLessonSerializer(serializers.ModelSerializer):
@@ -298,13 +337,14 @@ class QuizDetailSerializer(serializers.ModelSerializer):
             "passing_score",
             "time_limit",
             "questions",
-            "result"
+            "result",
         ]
 
     def get_questions(self, quiz):
         """Return all questions with their options."""
         questions = quiz.questions.prefetch_related("options").all()
         return MCQQuestionSerializer(questions, many=True).data
+
     def get_result(self, quiz):
         """
         Return the quiz result for the current user if the quiz has been submitted.
@@ -312,7 +352,7 @@ class QuizDetailSerializer(serializers.ModelSerializer):
         user = self.context.get("user")  # Get the current user from the context
         # print(user)
         if not user or not user.is_authenticated:
-            return None 
+            return None
         try:
             # Fetch the quiz result for the user and quiz
             quiz_result = QuizResult.objects.get(
@@ -323,7 +363,7 @@ class QuizDetailSerializer(serializers.ModelSerializer):
                 "submitted": quiz_result.submitted,
             }
         except QuizResult.DoesNotExist:
-            return None 
+            return None
 
 
 class QuizResultSerializer(serializers.Serializer):
@@ -358,7 +398,7 @@ class QuizResultSerializer(serializers.Serializer):
 
 
 class QuizResultShowSerializer(serializers.ModelSerializer):
-    quiz = QuizDetailSerializer(read_only=True)  
+    quiz = QuizDetailSerializer(read_only=True)
 
     class Meta:
         model = QuizResult
@@ -368,5 +408,65 @@ class QuizResultShowSerializer(serializers.ModelSerializer):
             "submitted",
             "submission_time",
             "selected_options",
-            "quiz",  
+            "quiz",
         ]
+
+
+class ClassRecordingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClassRecording
+        fields = ["id", "title", "video_url"]
+
+
+class ClassResourceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClassResource
+        fields = ["id", "title", "file_url"]
+
+
+class CourseClassSerializer(serializers.ModelSerializer):
+    recordings = ClassRecordingSerializer(many=True, read_only=True)
+    resources = ClassResourceSerializer(many=True, read_only=True)
+    join_link = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CourseClass
+        fields = [
+            "id",
+            "title",
+            "description",
+            "order",
+            "date",
+            "join_link",
+            "recordings",
+            "resources",
+        ]
+
+    def get_join_link(self, obj):
+        bd_timezone = pytz.timezone('Asia/Dhaka')
+        if obj.date:
+            bd_class_date = obj.date.astimezone(bd_timezone)
+        else:
+            return None  # No date means no live class
+
+        now_bd = datetime.now(bd_timezone)
+
+        # Define a buffer time (e.g., ±5 minutes)
+        buffer_time = timedelta(minutes=5)
+
+        # Calculate the start and end of the live window in Bangladesh time
+        live_start = bd_class_date - buffer_time
+        live_end = bd_class_date + buffer_time
+
+        # Check if the current Bangladesh time falls within the live window
+        if live_start <= now_bd <= live_end:
+            return obj.join_link
+
+        # If the class is in the past or future, return None
+        return None
+
+class BannerdataSerializer(serializers.ModelSerializer):
+   
+    class Meta:
+        model = Bannerdata
+        fields = ['title', 'sub_title', 'link', 'banner_image_url']

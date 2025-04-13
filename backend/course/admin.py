@@ -1,6 +1,10 @@
 from course.models import (
+    Bannerdata,
+    ClassRecording,
+    ClassResource,
     Course,
     CourseCategory,
+    CourseClass,
     Lesson,
     MCQQuestion,
     Module,
@@ -12,6 +16,7 @@ from course.models import (
 from django.contrib import admin
 
 # Register your models here.
+admin.site.register(Bannerdata)
 admin.site.register(CourseCategory)
 admin.site.register(Course)
 admin.site.register(Module)
@@ -21,3 +26,6 @@ admin.site.register(StudentProgress)
 admin.site.register(MCQQuestion)
 admin.site.register(Option)
 admin.site.register(QuizResult)
+admin.site.register(CourseClass)
+admin.site.register(ClassRecording)
+admin.site.register(ClassResource)

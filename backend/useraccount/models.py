@@ -95,3 +95,23 @@ class User(AbstractBaseUser, PermissionsMixin):
             return f"{settings.WEBSITE_URL}{self.profile_picture.url}"
         else:
             return ""
+
+
+class Instructor(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="instructor_profile")
+    bio = models.TextField(blank=True, null=True)
+    expertise = models.CharField(max_length=255, blank=True)
+    linkedin = models.URLField(blank=True, null=True)
+    website = models.URLField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        if self.user.role != RoleChoices.INSTRUCTOR:
+            raise ValidationError("Assigned user must have role 'instructor'.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean() 
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.user.full_name

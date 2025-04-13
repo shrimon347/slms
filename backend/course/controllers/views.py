@@ -1,7 +1,10 @@
-from course.models import Lesson, MCQQuestion, Module, Option, Quiz, QuizResult
+from django.shortcuts import get_object_or_404
+from course.models import Bannerdata, CourseClass, Lesson, MCQQuestion, Module, Option, Quiz, QuizResult
 from course.renderers import CourseRenderer
 from course.serializers import (
+    BannerdataSerializer,
     CourseCategorySerializer,
+    CourseClassSerializer,
     CourseCreateUpdateSerializer,
     CourseDetailSerializer,
     CourseEnrollmentSerializer,
@@ -142,7 +145,7 @@ class CourseListView(APIView):
 
 class CourseDetailView(APIView):
     """
-    retrieve single courses details.
+    Retrieve single course details.
     """
 
     renderer_classes = [CourseRenderer]
@@ -151,7 +154,7 @@ class CourseDetailView(APIView):
     def get(self, request, slug):
         try:
             course = CourseService.get_course_by_slug(slug)
-            serializer = CourseDetailSerializer(course)
+            serializer = CourseDetailSerializer(course, context={"request": request})
             data = serializer.data
             return Response({"course": data}, status=status.HTTP_200_OK)
 
@@ -161,8 +164,6 @@ class CourseDetailView(APIView):
             )
 
         except Exception as e:
-            # Log the exception for debugging purposes
-            # logger.error(f"An error occurred: {str(e)}")
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -535,3 +536,23 @@ class QuizResultDetailView(APIView):
 
         # Return the serialized data as a response
         return Response({"quiz_result": serializer.data}, status=status.HTTP_200_OK)
+
+class EnrollmentClassContentView(APIView):
+    permission_classes = [IsAuthenticated, IsStudent]
+
+    def get(self, request, enrollment_id):
+        # Get enrollment for the current user
+        enrollment = get_object_or_404(Enrollment, id=enrollment_id, student=request.user)
+
+        # Get all course classes related to the enrolled course
+        classes = CourseClass.objects.filter(course=enrollment.course).prefetch_related('recordings', 'resources')
+
+        serializer = CourseClassSerializer(classes, many=True)
+        return Response(serializer.data)
+    
+class BannerdataListAPIView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        banners = Bannerdata.objects.all()
+        serializer = BannerdataSerializer(banners, many=True, context={"request": request})
+        return Response({"banners": serializer.data}, status=status.HTTP_200_OK)

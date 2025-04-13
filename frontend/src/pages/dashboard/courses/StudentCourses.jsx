@@ -1,13 +1,28 @@
 import EnrollmentCourseCard from "@/components/courses/EnrollmentCourseCard";
 import { useGetEnrolledCourseQuery } from "@/features/course/courseApi";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 const StudentCourses = () => {
+  // Fetch enrolled courses using React Query
   const {
     data: courses,
     isLoading,
     isError,
-    error,
+    refetch,
   } = useGetEnrolledCourseQuery();
+
+  // Handle error state
+  useEffect(() => {
+    if (isError) {
+      toast.error("You don't Enroll any courses! Please Enroll Courses.");
+    }
+  }, [isError]);
+
+  // Refetch data when the component mounts or when changes are detected
+  useEffect(() => {
+    refetch(); // Manually trigger a refetch to update the data
+  }, [refetch]);
 
   return (
     <div className="p-4 md:p-14">
@@ -18,13 +33,6 @@ const StudentCourses = () => {
 
       {/* Loading State */}
       {isLoading && <p className="text-center text-gray-500">Loading...</p>}
-
-      {/* Error State */}
-      {isError && (
-        <p className="text-red-500 text-center">
-          Failed to load courses: {error?.message || "Unknown error"}
-        </p>
-      )}
 
       {/* Courses Grid */}
       {courses?.length > 0 ? (

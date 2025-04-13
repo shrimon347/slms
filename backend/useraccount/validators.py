@@ -94,7 +94,6 @@ def accept_terms_check(value):
     return value
 
 
-# Profile Picture Validator (size check)
 def validate_profile_picture(value):
     """
     Securely validate profile picture uploads:
@@ -109,9 +108,6 @@ def validate_profile_picture(value):
     if value.size > 2 * 1024 * 1024:  # 2MB limit
         raise ValidationError("Profile picture size must be less than 2MB.")
 
-    # Restrict Large Resolutions (Prevent DoS attacks)
-    if img.width > 4096 or img.height > 4096:
-        raise ValidationError("Image resolution must not exceed 4096x4096 pixels.")
     # Get file extension
     file_extension = os.path.splitext(value.name)[1].lower().replace(".", "")
 
@@ -121,13 +117,21 @@ def validate_profile_picture(value):
             "Only image files (JPEG, JPG, PNG, GIF, BMP) are allowed."
         )
 
-    # Verify image integrity using Pillow (PIL)
+    # Verify image integrity and dimensions using Pillow (PIL)
     try:
-        img = Image.open(value)
-        img.verify()  # Ensures it's a valid image file
-        img = Image.open(value)  # Reopen for additional validation
-        img.load()  # Fully load image to detect corrupt files
-    except Exception:
-        raise ValidationError("Invalid or corrupted image file.")
+        with Image.open(value) as img:
+            img.verify()  # Ensures it's a valid image file
+
+        # Reopen the image for additional validation (e.g., dimensions)
+        with Image.open(value) as img:
+            img.load()  # Fully load image to detect corrupt files
+
+            # Restrict Large Resolutions (Prevent DoS attacks)
+            if img.width > 4096 or img.height > 4096:
+                raise ValidationError(
+                    "Image resolution must not exceed 4096x4096 pixels."
+                )
+    except Exception as e:
+        raise ValidationError(f"Invalid or corrupted image file: {str(e)}")
 
     return value

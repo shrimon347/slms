@@ -9,7 +9,7 @@ from useraccount.services.user_service import UserService
 from useraccount.utils import Util
 from useraccount.validators import validate_password_strength
 
-from .models import User
+from .models import Instructor, RoleChoices, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -176,8 +176,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "contact_number",
             "profile_picture",
             "profile_image_url",
+            "role"
         ]
-        read_only_fields = ["email", "id"]
+        read_only_fields = ["email", "id","role"]
 
     # validate data for update profile data
     def update(self, instance, validated_data):
@@ -287,3 +288,32 @@ class UserPasswordResetSerializer(serializers.Serializer):
             raise serializers.ValidationError({"uid": "Invalid UID format."})
 
         return attrs
+
+
+class InstructorSerializer(serializers.ModelSerializer):
+    # Nested user info (read-only)
+    full_name = serializers.CharField(source="user.full_name", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    contact_number = serializers.CharField(source="user.contact_number", read_only=True)
+    profile_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Instructor
+        fields = [
+            "full_name",
+            "email",
+            "contact_number",
+            "profile_image",
+            "bio",
+            "expertise",
+            "website",
+            "linkedin",
+        ]
+
+    def get_profile_image(self, obj):
+        return obj.user.profile_image_url()
+
+    def validate_user(self, value):
+        if value.role != RoleChoices.INSTRUCTOR:
+            raise serializers.ValidationError("User must have the role 'instructor'.")
+        return value

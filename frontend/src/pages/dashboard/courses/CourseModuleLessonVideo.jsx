@@ -16,7 +16,6 @@ import React, {
 } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
-// Extracted to a separate component file or constants file
 const IFRAME_SANDBOX_ATTRIBUTES =
   "allow-scripts allow-same-origin allow-presentation allow-popups";
 
@@ -33,17 +32,15 @@ const CourseModuleLessonVideo = () => {
   const [currentLesson, setCurrentLesson] = useState(null);
 
   const handleBack = () => {
-    navigate(-1); 
+    navigate(-1);
   };
 
-  // Fetch course data only when courseId changes
   useEffect(() => {
     if (courseId) {
       trigger(courseId);
     }
   }, [courseId, trigger]);
 
-  // Memoize flattened lessons
   const allLessons = useMemo(() => {
     if (!moduleData?.modules) return [];
     return moduleData.modules.flatMap((module) =>
@@ -51,7 +48,6 @@ const CourseModuleLessonVideo = () => {
     );
   }, [moduleData]);
 
-  // Set current lesson when data or lessonId changes
   useEffect(() => {
     if (!allLessons.length) return;
 
@@ -63,35 +59,32 @@ const CourseModuleLessonVideo = () => {
     setCurrentLesson(foundLesson || allLessons[0]);
   }, [allLessons, lessonId]);
 
-  // Configure iframe with improved attributes
   useEffect(() => {
     if (!iframeRef.current || !currentLesson) return;
 
     const iframe = iframeRef.current;
-
-    // Set attributes for better performance and security
     iframe.setAttribute("loading", "lazy");
     iframe.setAttribute("title", currentLesson.title);
     iframe.setAttribute("sandbox", IFRAME_SANDBOX_ATTRIBUTES);
-
-    // Set src last to control loading sequence
     iframe.setAttribute("src", currentLesson.content);
 
-    // Cleanup function
     return () => {
-      // Cancel any pending loads if component unmounts before iframe loads
       if (iframe) {
         iframe.setAttribute("src", "about:blank");
       }
     };
   }, [currentLesson]);
 
-  // Memoized lesson select handler
   const handleLessonSelect = useCallback((lesson) => {
     setCurrentLesson(lesson);
   }, []);
 
-  // Loading and error states with proper loading skeleton
+  const defaultExpandedValue = useMemo(() => {
+    return moduleData?.modules?.length
+      ? `module-${moduleData.modules[0].id}`
+      : undefined;
+  }, [moduleData]);
+
   if (isLoading) return <LoadingSkeleton />;
   if (isError) return <ErrorDisplay message={error?.message} />;
   if (!moduleData?.modules?.length)
@@ -128,6 +121,7 @@ const CourseModuleLessonVideo = () => {
           <Accordion
             type="single"
             collapsible
+            defaultValue={defaultExpandedValue}
             className="w-full bg-zinc-100 p-3 rounded-md"
           >
             {moduleData.modules.map((module) => (
@@ -145,7 +139,6 @@ const CourseModuleLessonVideo = () => {
   );
 };
 
-// Extracted module item component with memoization
 const ModuleAccordionItem = React.memo(
   ({ module, currentLessonId, onLessonSelect }) => (
     <AccordionItem value={`module-${module.id}`}>
@@ -175,10 +168,9 @@ const ModuleAccordionItem = React.memo(
   )
 );
 
-// Extracted lesson item component with optimized event handling
 const LessonItem = React.memo(({ lesson, isActive, onSelect }) => (
   <li
-    className={`p-2 cursor-pointer border mb-5  transition-colors hover:border-black rounded-sm px-4 py-2 ${
+    className={`p-2 cursor-pointer border mb-5 transition-colors hover:border-black rounded-sm px-4 py-2 ${
       isActive ? "bg-zinc-200 border-black" : "hover:bg-gray-100"
     }`}
     onClick={onSelect}
@@ -187,7 +179,6 @@ const LessonItem = React.memo(({ lesson, isActive, onSelect }) => (
   </li>
 ));
 
-// Reusable loading skeleton component
 const LoadingSkeleton = () => (
   <div className="p-4 md:p-14">
     <div className="animate-pulse flex flex-col md:flex-row gap-6">
@@ -207,14 +198,12 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-// Reusable error component
 const ErrorDisplay = ({ message = "Unknown error" }) => (
   <div className="p-4 text-red-500 bg-red-50 rounded-md">
     <p>Error: {message}</p>
   </div>
 );
 
-// Reusable empty state component
 const EmptyState = ({ message }) => (
   <div className="p-4 text-gray-500 bg-gray-50 rounded-md text-center">
     <p>{message}</p>

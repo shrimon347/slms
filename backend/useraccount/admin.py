@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.forms import ValidationError
 from django.utils.translation import gettext_lazy as _
-from useraccount.models import User
+from useraccount.models import Instructor, RoleChoices, User
 
 
 class UserAdmin(BaseUserAdmin):
@@ -74,3 +75,10 @@ class UserAdmin(BaseUserAdmin):
 
 # Register the User model with the custom admin class
 admin.site.register(User, UserAdmin)
+
+@admin.register(Instructor)
+class InstructorAdmin(admin.ModelAdmin):
+    def save_model(self, request, obj, form, change):
+        if obj.user.role != RoleChoices.INSTRUCTOR:
+            raise ValidationError("User must have the role 'instructor'.")
+        super().save_model(request, obj, form, change)

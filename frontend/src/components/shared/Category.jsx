@@ -132,7 +132,7 @@ const Category = () => {
             <Button
               key={cat.id}
               onClick={() => handleTabChange(cat)}
-              className={`px-4 py-2 rounded-sm h-[60px] flex items-center justify-center gap-2 ${
+              className={`px-4 py-2 rounded-sm h-[60px] flex items-center justify-center gap-2 cursor-pointer ${
                 activeTab === cat.id
                   ? "bg-black text-white"
                   : "bg-gray-50 border text-black hover:bg-gray-100"

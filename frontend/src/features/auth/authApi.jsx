@@ -77,7 +77,38 @@ export const authApi = createApi({
       }),
     }),
     getUserProfile: builder.query({
-      query: () => "user/profile/",
+      query: () => ({
+        url: `user/profile/`,
+        method: "GET",
+      }),
+    }),
+    updateUserProfile: builder.mutation({
+      query: (credentials) => ({
+        url: `user/profile/`,
+        method: "PATCH",
+        body: credentials,
+      }),
+    }),
+    updateUserPassword: builder.mutation({
+      query: (credentials) => ({
+        url: `user/changepassword/`,
+        method: "POST",
+        body: credentials,
+      }),
+    }),
+    forgotUserPassword: builder.mutation({
+      query: (credentials) => ({
+        url: `user/send-reset-password-email/`,
+        method: "POST",
+        body: credentials,
+      }),
+    }),
+    forgotUserResetPassword: builder.mutation({
+      query: ({ uid, token, ...body }) => ({
+        url: `user/reset-password/${uid}/${token}/`,
+        method: "POST",
+        body,
+      }),
     }),
     logout: builder.mutation({
       queryFn: async (_arg, { dispatch }) => {
@@ -100,6 +131,10 @@ export const {
   useLoginMutation,
   useVerifyEmailMutation,
   useResendOtpMutation,
-  useGetUserProfileQuery,
+  useLazyGetUserProfileQuery,
   useLogoutMutation,
+  useUpdateUserProfileMutation,
+  useUpdateUserPasswordMutation,
+  useForgotUserPasswordMutation,
+  useForgotUserResetPasswordMutation
 } = authApi;

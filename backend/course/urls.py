@@ -1,10 +1,13 @@
+from payment.controllers.views import CertificateDownloadView
 from course.controllers.views import (
+    BannerdataListAPIView,
     CourseCategoryListView,
     CourseCreateUpdateAPIView,
     CourseDetailView,
     CourseEnrollmentModuleLessonView,
     CourseListView,
     EnrolledCourseQuizView,
+    EnrollmentClassContentView,
     EnrollmentCourseLessonView,
     MCQQuestionAPIView,
     QuizCreateAPIView,
@@ -19,8 +22,11 @@ from django.urls import path
 urlpatterns = [
     # for courses
     path("", CourseListView.as_view(), name="course-list"),
+    path("banner/", BannerdataListAPIView.as_view(), name="course-banner"),
     path("category/", CourseCategoryListView.as_view(), name="course-category"),
     path("create/", CourseCreateUpdateAPIView.as_view(), name="course-create"),
+    path("certificate/download/<uuid:enrollment_id>/", CertificateDownloadView.as_view(), name="download-certificate"),
+     path('enrollments/<uuid:enrollment_id>/classes/', EnrollmentClassContentView.as_view(), name='enrollment-classes'),
     path(
         "update/<int:course_id>/",
         CourseCreateUpdateAPIView.as_view(),

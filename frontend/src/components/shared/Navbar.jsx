@@ -40,7 +40,7 @@ const Navbar = () => {
     <div className="shadow-md bg-white z-50">
       <nav className="max-w-7xl mx-auto">
         <div className="container mx-auto flex justify-between items-center p-4">
-          <div className="text-xl font-bold">Brand</div>
+          <div className="text-xl font-bold">Shiko</div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex space-x-6">
@@ -60,7 +60,7 @@ const Navbar = () => {
               </>
             ) : (
               <Link to="/login">
-                <Button className="hidden md:block">Login / Signup</Button>
+                <Button className="hidden md:block cursor-pointer">Login / Signup</Button>
               </Link>
             )}
 

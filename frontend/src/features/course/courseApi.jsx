@@ -77,6 +77,36 @@ export const courseApi = createApi({
         method: "GET",
       }),
     }),
+    getAllCourseswithoutcategory: builder.query({
+      query: () => ({
+        url: `courses/`,
+        method: "GET",
+      }),
+    }),
+    getCoursesDetails: builder.query({
+      query: (slug) => ({
+        url: `courses/${slug}`,
+        method: "GET",
+      }),
+    }),
+    getBannerdata: builder.query({
+      query: () => ({
+        url: `courses/banner/`,
+        method: "GET",
+      }),
+    }),
+    getCoursesResources: builder.query({
+      query: (enrollments_id) => ({
+        url: `courses/enrollments/${enrollments_id}/classes/`,
+        method: "GET",
+      }),
+    }),
+    getChekoutCoursesDetails: builder.query({
+      query: (slug) => ({
+        url: `purchase/checkout-course/${slug}`,
+        method: "GET",
+      }),
+    }),
     getAllCategory: builder.query({
       query: () => ({
         url: `courses/category/`,
@@ -96,6 +126,13 @@ export const courseApi = createApi({
         body: payload,
       }),
     }),
+    checkoutPayment: builder.mutation({
+      query: ({ payload, courseSlug }) => ({
+        url: `purchase/checkout?course=${courseSlug}`,
+        method: "POST",
+        body: payload,
+      }),
+    }),
   }),
 });
 
@@ -108,4 +145,10 @@ export const {
   useLazyGetEnrolledModuleQuizzesQuery,
   useQuizSubmitMutation,
   useLazyGetQuizResultQuery,
+  useLazyGetCoursesDetailsQuery,
+  useLazyGetChekoutCoursesDetailsQuery,
+  useCheckoutPaymentMutation,
+  useGetCoursesResourcesQuery,
+  useLazyGetAllCourseswithoutcategoryQuery,
+  useGetBannerdataQuery
 } = courseApi;

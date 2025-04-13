@@ -7,7 +7,9 @@ const EnrollmentCourseCard = ({ course }) => {
   const navigate = useNavigate();
 
   const handleCardClick = () => {
-    navigate(`/dashboard/my-courses/${course.id}`);
+    if (course?.payment_status === "success") {
+      navigate(`/dashboard/my-courses/${course.id}`);
+    }
   };
 
   return (
@@ -27,9 +29,7 @@ const EnrollmentCourseCard = ({ course }) => {
       {/* Course Content */}
       <CardContent className="flex flex-col gap-2 md:gap-1.5 items-start justify-between flex-1 self-stretch px-2 md:px-0 py-1 md:py-0">
         {/* Course Title */}
-        <p className=" font-bold text-black">
-          {course?.course_title}
-        </p>
+        <p className=" font-bold text-black">{course?.course_title}</p>
 
         {/* Status & Batch */}
         <div className="flex gap-1.5">

@@ -22,7 +22,7 @@ class PaymentStatus(models.TextChoices):
 class PaymentMethod(models.TextChoices):
     CARD = "card", "Card"
     BKASH = "bkash", "BKash"
-    STRIPE = "stripe", "Stripe"
+    NAGAD = "nagad", "Nagad"
     BANK_TRANSFER = "bank_transfer", "Bank Transfer"
 
 
@@ -47,6 +47,8 @@ class Enrollment(models.Model):
     )
     completion_date = models.DateTimeField(null=True, blank=True)
     certificate_issued = models.BooleanField(default=False)
+    certificate_issue_date = models.DateTimeField(null=True, blank=True)
+    certificate_download_count = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"{self.student.full_name} - {self.course.title} - {self.status}"

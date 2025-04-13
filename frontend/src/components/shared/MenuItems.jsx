@@ -9,17 +9,17 @@ const roleBasedNavItems = {
       },
       {
         title: "Resources",
-        url: "student/resources",
+        url: "my-courses/resources",
         icon: FileText,
       },
       {
         title: "Recordings",
-        url: "student/recordings",
+        url: "my-courses/recordings",
         icon: Video,
       },
       {
         title: "Join Class",
-        url: "student/join-class",
+        url: "my-courses/join-class",
         icon: Users,
       },
     ],

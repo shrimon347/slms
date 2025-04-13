@@ -10,6 +10,7 @@ import {
 import useAuth from "@/hooks/useAuth";
 import { AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { LogOut, User } from "lucide-react";
+import { Link } from "react-router";
 import { Avatar } from "../ui/avatar";
 
 const AvatarDropDown = () => {
@@ -31,13 +32,26 @@ const AvatarDropDown = () => {
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">
-        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <div className="flex items-center gap-2">
+          <Avatar className="border">
+            <AvatarImage
+              src={user?.profile_image_url || "https://github.com/shadcn.png"}
+              alt={user?.full_name || "User"}
+            />
+          </Avatar>
+          <DropdownMenuLabel>
+            {user?.full_name}
+            <p>{user?.contact_number}</p>
+          </DropdownMenuLabel>
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <User />
-            <span>Profile</span>
-          </DropdownMenuItem>
+          <Link to="/dashboard/profile/">
+            <DropdownMenuItem className="cursor-pointer">
+              <User />
+              <span>Profile</span>
+            </DropdownMenuItem>
+          </Link>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>

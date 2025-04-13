@@ -55,15 +55,15 @@ INSTALLED_APPS = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:8000",  # Django backend (local)
-    "http://localhost:8000",  # Django backend (alternative local)
-    "http://localhost:3000",  # React (Create React App default)
-    "http://127.0.0.1:3000",  # React (alternative local)
-    "http://localhost:5173",  # React (Vite default)
-    "http://127.0.0.1:5173",  # React (Vite alternative local)
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
-
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_EXPOSE_HEADERS = ["Content-Disposition"]
+CORS_ALLOW_ALL_ORIGINS = False 
+CORS_ALLOW_CREDENTIALS = True
+X_FRAME_OPTIONS = "ALLOWALL"
 
 # JWT Configuration
 REST_FRAMEWORK = {
@@ -166,12 +166,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+# TIME_ZONE = "UTC"
 
 USE_I18N = True
 
 USE_TZ = True
 
+TIME_ZONE = "Asia/Dhaka"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/

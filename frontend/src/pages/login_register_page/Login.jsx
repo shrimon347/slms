@@ -35,10 +35,10 @@ const Login = () => {
       // Call the login API with the credentials
       const response = await login(data).unwrap();
       console.log(response);
-      
-      const { user,token } = response;
-      const access = token.access
-      const refresh = token.refresh
+
+      const { user, token } = response;
+      const access = token.access;
+      const refresh = token.refresh;
 
       // Dispatch the action to set user credentials in Redux
       dispatch(setUserCredentials({ user, access, refresh }));
@@ -85,11 +85,17 @@ const Login = () => {
           )}
 
           {/* Submit button */}
-          <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
+          <Button
+            type="submit"
+            className="w-full cursor-pointer"
+            disabled={isLoading}
+          >
             {isLoading ? "Logging in..." : "Login"}
           </Button>
         </form>
-
+        <p className="py-5 text-sm text-blue-500 hover:underline mt-1">
+          <Link to="/forgot-password">Forgot Password?</Link>
+        </p>
         {/* Register link */}
         <div className="text-center mt-4">
           <p className="text-sm text-gray-600">

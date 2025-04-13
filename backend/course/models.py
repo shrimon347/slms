@@ -6,7 +6,7 @@ from django.dispatch import receiver
 from django.forms import ValidationError
 from django.utils import timezone
 from django.utils.text import slugify
-from useraccount.models import User
+from useraccount.models import Instructor, User
 
 
 # course categories
@@ -30,6 +30,7 @@ class Course(models.Model):
         null=True,
         blank=True,
     )
+    instructors = models.ManyToManyField(Instructor, related_name="courses")
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     duration = models.IntegerField(help_text="Duration in minutes")
     batch = models.CharField(max_length=255)
@@ -175,7 +176,7 @@ class StudentProgress(models.Model):
         unique_together = ("student", "quiz")
 
     def __str__(self):
-        return f"{self.student.full_name} - {self.lesson or self.quiz} - {'Completed' if self.completed else 'In Progress'}"
+        return f"{self.student.full_name} - {self.quiz} - {'Completed' if self.completed else 'In Progress'}"
 
 class QuizResult(models.Model):
     student = models.ForeignKey(
@@ -202,3 +203,56 @@ class QuizResult(models.Model):
         super().save(*args, **kwargs)
     def __str__(self):
         return f"{self.student.full_name} - {self.quiz.title} - {self.obtained_marks}/{self.total_marks}"
+    
+class CourseClass(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='classes')
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    order = models.PositiveIntegerField(default=1)
+    date = models.DateTimeField(null=True, blank=True)
+    join_link = models.URLField(blank=True, null=True)  # Live class URL (Zoom/Meet/etc.)
+
+    def __str__(self):
+        return f"{self.title} ({self.course.title})"
+
+class ClassRecording(models.Model):
+    course_class = models.ForeignKey(CourseClass, on_delete=models.CASCADE, related_name='recordings')
+    title = models.CharField(max_length=255)
+    video_url = models.URLField()
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title}"
+    
+class ClassResource(models.Model):
+    course_class = models.ForeignKey(CourseClass, on_delete=models.CASCADE, related_name='resources')
+    title = models.CharField(max_length=255)
+    file = models.FileField(upload_to='class_resources/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def file_url(self):
+        if self.file:
+            return f"{settings.WEBSITE_URL}{self.file.url}"
+        else:
+            return ""
+
+    def __str__(self):
+        return f"{self.title}"
+
+class Bannerdata(models.Model):
+    title = models.CharField(max_length=255)
+    sub_title = models.CharField(max_length=255)
+    banner_image = models.ImageField(
+        upload_to="uploads/bannner",
+        null=True,
+        blank=True,
+    )
+    link = models.URLField( max_length=200, null=True, blank=True)
+    def banner_image_url(self):
+        if self.banner_image:
+            return f"{settings.WEBSITE_URL}{self.banner_image.url}"
+        else:
+            return ""
+        
+    def __str__(self):
+        return f"{self.title}"
