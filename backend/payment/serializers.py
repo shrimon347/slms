@@ -10,20 +10,11 @@ class CheckoutSerializer(serializers.Serializer):
     before creating an enrollment and payment.
     """
 
-    course_id = serializers.IntegerField(required=True)
     payment_method = serializers.ChoiceField(
         choices=PaymentMethod.choices, required=True
     )
     amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=True)
     transaction_id = serializers.CharField(max_length=255, required=True)
-
-    def validate_course_id(self, value):
-        """Validate that the course exists."""
-        try:
-            CourseService.get_course_by_id(value)
-        except Course.DoesNotExist:
-            raise serializers.ValidationError("Course not found.")
-        return value
 
     def validate_transaction_id(self, value):
         """Validate that the transaction ID is unique."""
@@ -32,40 +23,53 @@ class CheckoutSerializer(serializers.Serializer):
         return value
 
     def validate(self, data):
-        """
-        Additional validation to check if the user is already enrolled
-        in the course with an active status.
-        """
         request = self.context.get("request")
         user = request.user
-        course_id = data.get("course_id")
+        course_slug = self.context.get("course_slug")
 
-        # Check if course exists (this is redundant with validate_course_id but keeps the logic clear)
+        if not course_slug:
+            raise serializers.ValidationError({"course": "Course slug is required."})
+
+        # Get course using slug
         try:
-            course = CourseService.get_course_by_id(course_id)
+            course = CourseService.get_course_by_slug(course_slug)
         except Course.DoesNotExist:
-            raise serializers.ValidationError({"course_id": "Course not found."})
+            raise serializers.ValidationError({"course": "Course not found."})
 
-        # Check if user is already enrolled with an active status
+        # Check enrollment status
         if Enrollment.objects.filter(
             student=user, course=course, status__in=["active", "completed"]
         ).exists():
             raise serializers.ValidationError(
-                {"course_id": "You are already enrolled in this course."}
+                {"course": "You are already enrolled in this course."}
             )
 
-        # Check if amount matches the course price
+        # Check amount matches
         if data.get("amount") != course.price:
             raise serializers.ValidationError(
                 {"amount": "Payment amount does not match course price."}
             )
 
+        # Store course in context for use in view
+        self.context["course"] = course
+
         return data
 
 
-from rest_framework import serializers
+class CheckoutCourseSerilizers(serializers.ModelSerializer):
+    enrollment_status = serializers.SerializerMethodField()
+    class Meta:
+        model = Course
+        fields = ["title", "course_image_url", "price", "slug", "enrollment_status",]
 
-from .models import Payment, PaymentStatus  # Assuming PaymentStatus is an Enum
+    def get_enrollment_status(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return None
+
+        enrollment = obj.enrollments.filter(student=request.user).first()
+        print(enrollment)
+        return enrollment.payment_status if enrollment else None
 
 
 class VerifyPaymentSerializer(serializers.ModelSerializer):

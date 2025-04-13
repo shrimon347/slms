@@ -10,7 +10,7 @@ class LessonService:
     @staticmethod
     def get_lesson_by_id(lesson_id: int):
         """Get a lesson by its ID."""
-        return LessonRepository.get_by_id(lesson_id)
+        return LessonRepository.get_lesson_by_id(lesson_id)
 
     @staticmethod
     def create_lesson(**data):

@@ -11,9 +11,9 @@ def validate_full_name(value):
     if not value:
         raise ValidationError("Full Name is required.")
     if (
-        len(value.split()) < 2
+        len(value.split()) < 1
     ):  # Ensure at least two words in the name (e.g., First Name + Last Name)
-        raise ValidationError("Full Name must contain at least two words.")
+        raise ValidationError("Full Name must contain at least One words.")
     if not all(
         word.isalpha() for word in value.split()
     ):  # Ensure each part of the name contains only letters
@@ -85,7 +85,15 @@ def validate_contact_number(value):
     return value
 
 
-# Profile Picture Validator (size check)
+# accept_terms validator
+def accept_terms_check(value):
+    if value not in ["True", "False"]:
+        return ValidationError(
+            "Invalid value for accept_terms, must be 'True' or 'False'."
+        )
+    return value
+
+
 def validate_profile_picture(value):
     """
     Securely validate profile picture uploads:
@@ -100,9 +108,6 @@ def validate_profile_picture(value):
     if value.size > 2 * 1024 * 1024:  # 2MB limit
         raise ValidationError("Profile picture size must be less than 2MB.")
 
-    # Restrict Large Resolutions (Prevent DoS attacks)
-    if img.width > 4096 or img.height > 4096:
-        raise ValidationError("Image resolution must not exceed 4096x4096 pixels.")
     # Get file extension
     file_extension = os.path.splitext(value.name)[1].lower().replace(".", "")
 
@@ -112,13 +117,21 @@ def validate_profile_picture(value):
             "Only image files (JPEG, JPG, PNG, GIF, BMP) are allowed."
         )
 
-    # Verify image integrity using Pillow (PIL)
+    # Verify image integrity and dimensions using Pillow (PIL)
     try:
-        img = Image.open(value)
-        img.verify()  # Ensures it's a valid image file
-        img = Image.open(value)  # Reopen for additional validation
-        img.load()  # Fully load image to detect corrupt files
-    except Exception:
-        raise ValidationError("Invalid or corrupted image file.")
+        with Image.open(value) as img:
+            img.verify()  # Ensures it's a valid image file
+
+        # Reopen the image for additional validation (e.g., dimensions)
+        with Image.open(value) as img:
+            img.load()  # Fully load image to detect corrupt files
+
+            # Restrict Large Resolutions (Prevent DoS attacks)
+            if img.width > 4096 or img.height > 4096:
+                raise ValidationError(
+                    "Image resolution must not exceed 4096x4096 pixels."
+                )
+    except Exception as e:
+        raise ValidationError(f"Invalid or corrupted image file: {str(e)}")
 
     return value

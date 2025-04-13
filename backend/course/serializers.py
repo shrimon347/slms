@@ -1,13 +1,26 @@
+from datetime import datetime, timedelta
+import pytz 
+from django.forms import ValidationError
 from django.utils.text import slugify
 from rest_framework import serializers
+from useraccount.serializers import InstructorSerializer
+from useraccount.models import User
 
-from .models import Course, CourseCategory, Lesson, Module
-from .services import (
-    course_category_service,
-    course_service,
-    lesson_service,
-    module_service,
+from .models import (
+    Bannerdata,
+    ClassRecording,
+    ClassResource,
+    Course,
+    CourseCategory,
+    CourseClass,
+    Lesson,
+    MCQQuestion,
+    Module,
+    Option,
+    Quiz,
+    QuizResult,
 )
+from .services import course_category_service, lesson_service, module_service
 
 
 class CourseCategorySerializer(serializers.ModelSerializer):
@@ -38,12 +51,35 @@ class LessonSerializer(serializers.ModelSerializer):
         return lesson_service().update_lesson(instance.id, **validated_data)
 
 
+class QuizResultForEnrollment(serializers.ModelSerializer):
+    class Meta:
+        model = QuizResult
+        fields = ["id", "obtained_marks", "total_marks", "submitted", "submission_time"]
+
+
+class QuizSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Quiz
+        fields = ["id", "title", "total_questions", "passing_score", "time_limit"]
+
+
 class ModuleSerializer(serializers.ModelSerializer):
     lessons = serializers.SerializerMethodField()  # Lazy load only related lessons
+    quiz = QuizSerializer(read_only=True)
+    quiz_result = serializers.SerializerMethodField()
 
     class Meta:
         model = Module
-        fields = ["id", "title", "description", "order", "lessons"]
+        fields = [
+            "id",
+            "title",
+            "description",
+            "order",
+            "lessons",
+            "quiz",
+            "quiz_result",
+        ]
 
     def get_lessons(self, obj):
         """Return only related lessons for this module"""
@@ -58,6 +94,23 @@ class ModuleSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         return module_service().update_module(instance.id, **validated_data)
 
+    def get_quiz_result(self, module):
+        user_email = self.context.get("user_email")
+        if not user_email:
+            return None  # Return None if no user email is present
+
+        # Fetch the user object from the database using the email
+        try:
+            user = User.objects.get(email=user_email)
+        except User.DoesNotExist:
+            return None  # Return None if the user does not exist
+
+        # Fetch the quiz result for the current user and module's quiz
+        quiz_result = QuizResult.objects.filter(student=user, quiz=module.quiz).first()
+
+        # Serialize the quiz result if it exists, otherwise return None
+        return QuizResultForEnrollment(quiz_result).data if quiz_result else None
+
 
 class ModuleExcludedLessonsSerializer(serializers.ModelSerializer):
     """Serializer for Modules without Lessons"""
@@ -70,16 +123,17 @@ class ModuleExcludedLessonsSerializer(serializers.ModelSerializer):
 class CourseDetailSerializer(serializers.ModelSerializer):
     """Serializer for Course with related data"""
 
-    category = serializers.CharField(
-        source="category.name"
-    )  # Get category name instead of ID
+    category = serializers.CharField(source="category.name")
     modules = ModuleExcludedLessonsSerializer(many=True, read_only=True)
+    enrollment_status = serializers.SerializerMethodField()
+    instructors = InstructorSerializer(many=True)
 
     class Meta:
         model = Course
         fields = [
             "id",
             "category",
+            "instructors",
             "title",
             "description",
             "course_image_url",
@@ -95,80 +149,84 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             "updated_at",
             "time_remaining",
             "modules",
+            "enrollment_status",  # Include enrollment status
         ]
+
+    def get_enrollment_status(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return None
+
+        enrollment = obj.enrollments.filter(student=request.user).first()
+        print(enrollment)
+        return enrollment.payment_status if enrollment else None
 
 
 class CourseCreateUpdateSerializer(serializers.ModelSerializer):
-    category_id = serializers.PrimaryKeyRelatedField(
-        queryset=CourseCategory.objects.all(), source="category", write_only=True
-    )
     category_name = serializers.CharField(
-        write_only=True, required=False
-    )  # For custom category name
-
-    modules = serializers.SerializerMethodField()  # Lazy loading related modules
+        write_only=True, required=True
+    )  # To handle category creation if it doesn't exist
 
     class Meta:
         model = Course
         fields = [
             "id",
-            "category",
-            "category_id",
-            "category_name",
+            "category_name",  # To create or retrieve category by name
             "title",
             "description",
             "price",
             "duration",
-            "demo_url",
+            "batch",
+            "remaining_seat",
             "start_date",
             "end_date",
-            "slug",
+            "slug",  # Slug for the course, auto-generated if not provided
+            "demo_url",
             "created_at",
             "updated_at",
-            "modules",
         ]
         read_only_fields = ["slug", "created_at", "updated_at"]
 
-    def get_modules(self, obj):
-        """Return modules as an object, with lessons inside"""
-        modules_data = {}
-        for module in obj.modules.all():
-            modules_data[module.title] = {
-                "lessons": LessonSerializer(module.lessons.all(), many=True).data
-            }
-        return modules_data
-
     def create(self, validated_data):
-        """Create a new course and handle category creation if necessary"""
-        category_name = validated_data.get("category_name", None)
-        if category_name:
-            # Check if category exists case-insensitively, if not create it
-            category, created = CourseCategory.objects.get_or_create(
-                name__iexact=category_name
-            )
-            validated_data["category"] = category
+        """Create a new course and handle category creation."""
+        category_name = validated_data.pop("category_name", None)
 
-        validated_data["slug"] = slugify(validated_data["title"])
-        return course_service().create_course(
-            category_id=validated_data.pop("category_id", None), **validated_data
+        # Ensure the category exists or create it
+        category, created = CourseCategory.objects.get_or_create(
+            name__iexact=category_name, defaults={"name": category_name}
         )
+        validated_data["category"] = category
+
+        validated_data["slug"] = slugify(
+            validated_data["title"]
+        )  # Ensure a slug is created
+        return Course.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
-        """Update an existing course, and handle category update if necessary"""
-        category_name = validated_data.get("category_name", None)
+        """Update an existing course, and handle category update if necessary."""
+        category_name = validated_data.pop("category_name", None)
+
         if category_name:
-            # Check if category exists case-insensitively, if not create it
             category, created = CourseCategory.objects.get_or_create(
-                name__iexact=category_name
+                name__iexact=category_name, defaults={"name": category_name}
             )
             validated_data["category"] = category
 
-        validated_data["slug"] = slugify(validated_data.get("title", instance.title))
-        return course_service().update_course(
-            instance.id,
-            category_id=validated_data.pop("category_id", None),
-            **validated_data
-        )
+        new_slug = slugify(validated_data.get("title", instance.title))
+
+        # Check if the new slug already exists (and not for the current instance)
+        if Course.objects.filter(slug=new_slug).exclude(id=instance.id).exists():
+            raise ValidationError(
+                "The slug generated from the title is already in use. Please change the title."
+            )
+
+        # Assign the new slug
+        validated_data["slug"] = new_slug
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 
 class CourseListSerializer(serializers.ModelSerializer):
@@ -189,12 +247,226 @@ class CourseListSerializer(serializers.ModelSerializer):
 
 class CourseEnrollmentSerializer(serializers.ModelSerializer):
     modules = serializers.SerializerMethodField()
+    certificate_issued = serializers.SerializerMethodField()
+    enrollment_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
-        fields = ["id", "title", "description", "modules"]
+        fields = [
+            "id",
+            "title",
+            "description",
+            "modules",
+            "certificate_issued",
+            "enrollment_id",
+        ]
 
     def get_modules(self, course):
-        """Only return modules related to the enrolled student's course"""
+        user = self.context.get("user")
         modules = course.modules.prefetch_related("lessons").all()
-        return ModuleSerializer(modules, many=True).data
+        context = {"user_email": user.email} if user and user.is_authenticated else {}
+        serialized_data = ModuleSerializer(modules, many=True, context=context).data
+        return serialized_data
+
+    def get_certificate_issued(self, course):
+        user = self.context.get("user")
+        if not user or not user.is_authenticated:
+            return False
+        enrollment = course.enrollments.filter(student=user).first()
+        return enrollment.certificate_issued if enrollment else False
+
+    def get_enrollment_id(self, course):
+        user = self.context.get("user")
+        if not user or not user.is_authenticated:
+            return None
+        enrollment = course.enrollments.filter(student=user).first()
+        return str(enrollment.id) if enrollment else None
+
+
+class EnrollmentModuleLessonSerializer(serializers.ModelSerializer):
+    lessons = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Module
+        fields = [
+            "id",
+            "title",
+            "lessons",
+            "order",
+        ]  # Include only module ID, title, and lessons
+
+    def get_lessons(self, module):
+        """Return only the lessons related to this module."""
+        lessons = module.lessons.all().order_by("order")  # Fetch lessons in order
+        return LessonSerializer(lessons, many=True).data
+
+
+class CourseProgressSerializer(serializers.ModelSerializer):
+    lesson_id = serializers.CharField(source="lesson.id", read_only=True)
+    quiz_id = serializers.CharField(source="quiz.id", read_only=True)
+
+    class Meta:
+        model = Course
+        fields = ["id", "title", "progress"]
+
+
+class OptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Option
+        fields = ["id", "option_text", "order", "is_correct"]
+
+
+class MCQQuestionSerializer(serializers.ModelSerializer):
+    options = OptionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = MCQQuestion
+        fields = ["id", "question_text", "correct_option_index", "options"]
+
+
+class QuizDetailSerializer(serializers.ModelSerializer):
+    questions = serializers.SerializerMethodField()
+    result = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Quiz
+        fields = [
+            "id",
+            "title",
+            "total_questions",
+            "passing_score",
+            "time_limit",
+            "questions",
+            "result",
+        ]
+
+    def get_questions(self, quiz):
+        """Return all questions with their options."""
+        questions = quiz.questions.prefetch_related("options").all()
+        return MCQQuestionSerializer(questions, many=True).data
+
+    def get_result(self, quiz):
+        """
+        Return the quiz result for the current user if the quiz has been submitted.
+        """
+        user = self.context.get("user")  # Get the current user from the context
+        # print(user)
+        if not user or not user.is_authenticated:
+            return None
+        try:
+            # Fetch the quiz result for the user and quiz
+            quiz_result = QuizResult.objects.get(
+                student=user, quiz=quiz, submitted=True
+            )
+            return {
+                "quiz_result_id": quiz_result.id,
+                "submitted": quiz_result.submitted,
+            }
+        except QuizResult.DoesNotExist:
+            return None
+
+
+class QuizResultSerializer(serializers.Serializer):
+    quiz_id = serializers.IntegerField(required=True)
+    selected_options = serializers.DictField(
+        child=serializers.IntegerField(), required=True
+    )
+    id = serializers.IntegerField(read_only=True)
+
+    def validate_quiz_id(self, value):
+        """Ensure the quiz ID exists."""
+        if not Quiz.objects.filter(id=value).exists():
+            raise serializers.ValidationError("Invalid quiz ID.")
+        return value
+
+    def validate_selected_options(self, value):
+        """Ensure selected options are valid."""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Selected options must be a dictionary.")
+
+        # Ensure all question IDs exist in the quiz
+        quiz_id = self.initial_data.get("quiz_id")
+        quiz_questions = MCQQuestion.objects.filter(quiz_id=quiz_id).values_list(
+            "id", flat=True
+        )
+
+        for question_id in value.keys():
+            if int(question_id) not in quiz_questions:
+                raise serializers.ValidationError(f"Invalid question ID: {question_id}")
+
+        return value
+
+
+class QuizResultShowSerializer(serializers.ModelSerializer):
+    quiz = QuizDetailSerializer(read_only=True)
+
+    class Meta:
+        model = QuizResult
+        fields = [
+            "obtained_marks",
+            "total_marks",
+            "submitted",
+            "submission_time",
+            "selected_options",
+            "quiz",
+        ]
+
+
+class ClassRecordingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClassRecording
+        fields = ["id", "title", "video_url"]
+
+
+class ClassResourceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClassResource
+        fields = ["id", "title", "file_url"]
+
+
+class CourseClassSerializer(serializers.ModelSerializer):
+    recordings = ClassRecordingSerializer(many=True, read_only=True)
+    resources = ClassResourceSerializer(many=True, read_only=True)
+    join_link = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CourseClass
+        fields = [
+            "id",
+            "title",
+            "description",
+            "order",
+            "date",
+            "join_link",
+            "recordings",
+            "resources",
+        ]
+
+    def get_join_link(self, obj):
+        bd_timezone = pytz.timezone('Asia/Dhaka')
+        if obj.date:
+            bd_class_date = obj.date.astimezone(bd_timezone)
+        else:
+            return None  # No date means no live class
+
+        now_bd = datetime.now(bd_timezone)
+
+        # Define a buffer time (e.g., ±5 minutes)
+        buffer_time = timedelta(minutes=5)
+
+        # Calculate the start and end of the live window in Bangladesh time
+        live_start = bd_class_date - buffer_time
+        live_end = bd_class_date + buffer_time
+
+        # Check if the current Bangladesh time falls within the live window
+        if live_start <= now_bd <= live_end:
+            return obj.join_link
+
+        # If the class is in the past or future, return None
+        return None
+
+class BannerdataSerializer(serializers.ModelSerializer):
+   
+    class Meta:
+        model = Bannerdata
+        fields = ['title', 'sub_title', 'link', 'banner_image_url']

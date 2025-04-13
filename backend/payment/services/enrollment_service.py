@@ -1,3 +1,4 @@
+from payment.models import Enrollment
 from course.repositories.course_repository import CourseRepository
 from payment.repositories.enrollment_repository import EnrollmentRepository
 
@@ -67,3 +68,16 @@ class EnrollmentService:
     def remove_enrollment(enrollment_id):
         """Deletes an enrollment"""
         return EnrollmentRepository.delete_enrollment(enrollment_id)
+
+    @staticmethod
+    def complete_quiz(student, quiz):
+        """
+        Marks the quiz as completed for the student and updates enrollment progress.
+        """
+        try:
+             # Access the course via quiz.module.course
+            course = quiz.module.course
+            # Update enrollment progress
+            EnrollmentRepository.update_enrollment_progress(student=student, course=course)
+        except Enrollment.DoesNotExist:
+            raise ValueError("Student is not enrolled in this course.")

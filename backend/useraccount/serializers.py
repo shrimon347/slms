@@ -9,7 +9,7 @@ from useraccount.services.user_service import UserService
 from useraccount.utils import Util
 from useraccount.validators import validate_password_strength
 
-from .models import User
+from .models import Instructor, RoleChoices, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -29,6 +29,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserRegistrationSerializer(serializers.ModelSerializer):
     # We are writing this becoz we need confirm password field in our Registratin Request
     password2 = serializers.CharField(style={"input_type": "password"}, write_only=True)
+    accept_terms = serializers.BooleanField()
 
     class Meta:
         model = User
@@ -40,6 +41,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             "date_of_birth",
             "contact_number",
             "profile_picture",
+            "accept_terms",
         ]
         extra_kwargs = {
             "password": {"write_only": True},
@@ -50,6 +52,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         password = attrs.get("password")
         password2 = attrs.get("password2")
         contact_number = attrs.get("contact_number")
+        accept_terms = attrs.get("accept_terms")
+
+        if not accept_terms:
+            raise serializers.ValidationError(
+                {"accept_terms": "You must accepted the terms & conditions"}
+            )
 
         if password and password2 and password != password2:
             raise serializers.ValidationError(
@@ -117,6 +125,38 @@ class UserOtpVerifySerializer(serializers.Serializer):
         return data
 
 
+class ResendOtpSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=255)
+
+    def validate(self, data):
+        try:
+            user = UserService.get_user_by_email(email=data["email"])
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found.")
+
+        if user.is_verified:
+            raise serializers.ValidationError("User is already verified.")
+        return data
+
+    def resend_otp(self, validated_data):
+        try:
+            user = UserService.get_user_by_email(email=validated_data["email"])
+            new_otp = str(random.randint(100000, 999999))
+
+            user.otp = new_otp
+            user.save()
+            body = f"Your OTP for email verification is {new_otp}"
+            data = {
+                "subject": "Verify Your Email",
+                "body": body,
+                "to_email": user.email,
+            }
+            Util.send_email(data)
+            return user
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found.")
+
+
 class UserLoginSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255)
 
@@ -136,8 +176,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "contact_number",
             "profile_picture",
             "profile_image_url",
+            "role"
         ]
-        read_only_fields = ["email", "id"]
+        read_only_fields = ["email", "id","role"]
 
     # validate data for update profile data
     def update(self, instance, validated_data):
@@ -247,3 +288,32 @@ class UserPasswordResetSerializer(serializers.Serializer):
             raise serializers.ValidationError({"uid": "Invalid UID format."})
 
         return attrs
+
+
+class InstructorSerializer(serializers.ModelSerializer):
+    # Nested user info (read-only)
+    full_name = serializers.CharField(source="user.full_name", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    contact_number = serializers.CharField(source="user.contact_number", read_only=True)
+    profile_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Instructor
+        fields = [
+            "full_name",
+            "email",
+            "contact_number",
+            "profile_image",
+            "bio",
+            "expertise",
+            "website",
+            "linkedin",
+        ]
+
+    def get_profile_image(self, obj):
+        return obj.user.profile_image_url()
+
+    def validate_user(self, value):
+        if value.role != RoleChoices.INSTRUCTOR:
+            raise serializers.ValidationError("User must have the role 'instructor'.")
+        return value

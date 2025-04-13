@@ -1,14 +1,16 @@
 from django.contrib.auth import authenticate
 from django.forms import ValidationError
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 from useraccount.models import User
 from useraccount.permissions import IsAdminOrStaff
 from useraccount.renderers import UserRenderer
 from useraccount.serializers import (
+    ResendOtpSerializer,
     SendPasswordResetEmailSerializer,
     UserChangePasswordSerializer,
     UserLoginSerializer,
@@ -31,6 +33,34 @@ def get_token_for_user(user):
     }
 
 
+class CustomTokenRefreshView(TokenRefreshView):
+    """
+    fro refresh token
+    """
+
+    renderer_classes = [UserRenderer]
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.data.get("refresh")
+
+        if not refresh_token:
+            return Response(
+                {"error": "Refresh token is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        response = super().post(request, *args, **kwargs)
+
+        return Response(
+            {
+                "message": "Token refreshed successfully",
+                "access": response.data.get("access"),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class UserRegistrationView(APIView):
     renderer_classes = [UserRenderer]
     permission_classes = [AllowAny]
@@ -41,13 +71,37 @@ class UserRegistrationView(APIView):
         user = serializer.save()
         return Response(
             {
-                "success": "User registered successfully. Please verify your email with the OTP sent."
+                "success": "User registered successfully. Please verify your email. An OTP sent your email."
             },
             status=status.HTTP_201_CREATED,
         )
 
 
+class ResendOtpView(APIView):
+    """
+    view to hand otp resend requests
+    """
+
+    renderer_classes = [UserRenderer]
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResendOtpSerializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+
+            serializer.resend_otp(serializer.validated_data)
+            return Response(
+                {"message": "OTP resent successfully."}, status=status.HTTP_200_OK
+            )
+        except serializers.ValidationError as e:
+            return Response(
+                {"error": str(e.detail[0])}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+
 class UserVerifyOTPView(APIView):
+    renderer_classes = [UserRenderer]
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -83,10 +137,12 @@ class UserLoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         user = authenticate(email=email, password=password)
+        user_serializer = UserSerializer(user)
+        user_data = user_serializer.data
         if user is not None:
             token = get_token_for_user(user)
             return Response(
-                {"token": token, "message": "Login SuccessFull"},
+                {"token": token, "user": user_data, "message": "Login SuccessFull"},
                 status=status.HTTP_200_OK,
             )
         else:
@@ -178,6 +234,7 @@ class UserPasswordResetView(APIView):
 
 
 class UserListView(APIView):
+    renderer_classes = [UserRenderer]
     permission_classes = [IsAuthenticated, IsAdminOrStaff]
 
     def get(self, request):
