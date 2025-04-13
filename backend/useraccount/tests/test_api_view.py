@@ -21,6 +21,7 @@ class UserRegistrationTestCase(APITestCase):
             "contact_number": "1234567890",
             "profile_picture": None,
             "is_verified": True,
+            "accept_terms": True
         }
 
     def test_user_registration_success(self):
@@ -30,7 +31,7 @@ class UserRegistrationTestCase(APITestCase):
         self.assertIn("success", response.data)
         self.assertEqual(
             response.data["success"],
-            "User registered successfully. Please verify your email with the OTP sent.",
+            "User registered successfully. Please verify your email. An OTP sent your email.",
         )
 
     def test_user_registration_password_mismatch(self):
@@ -88,7 +89,7 @@ class UserRegistrationTestCase(APITestCase):
         # Send OTP email (simulate it in your code, or you can mock the email sending)
         user.otp = "123456"
         user.save()
-        url = reverse("verify-otp")  # Adjust URL as per your project
+        url = reverse("verify-email")  # Adjust URL as per your project
         data = {
             "email": "testuser@example.com",
             "otp": "123456",
@@ -110,7 +111,7 @@ class UserRegistrationTestCase(APITestCase):
         user.save()
 
         # Make the request to verify the OTP
-        url = reverse("verify-otp")
+        url = reverse("verify-email")
         data = {
             "email": "testuser@example.com",
             "otp": "654321",  # Incorrect OTP
