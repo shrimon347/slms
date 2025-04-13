@@ -10,3 +10,4 @@ pillow==10.3.0; python_version >= '3.8'  # For image handling
 django-cors-headers== 4.7.0; python_version >= '3.8' 
 djangorestframework-simplejwt==5.2.2; python_version >= '3.8'
 reportlab==4.3.1
+pytz==2023.3
