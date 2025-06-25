@@ -2,3 +2,5 @@
 Pipfile
 Pipfile.lock
 db.sqlite3
+.idea
+./backend/.idea*

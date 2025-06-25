@@ -32,3 +32,4 @@ class CommandTests(SimpleTestCase):
 
         # Verify that time.sleep was called during retries
         patched_sleep.assert_called()
+
